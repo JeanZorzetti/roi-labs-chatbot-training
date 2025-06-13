@@ -42,10 +42,6 @@ RUN apk add --no-cache \
     dumb-init \
     bash
 
-# Criar usuário não-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S chatbot -u 1001
-
 # Configurar Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
@@ -53,17 +49,17 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 WORKDIR /app
 
 # Copiar dependências do stage de build
-COPY --from=builder --chown=chatbot:nodejs /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copiar código da aplicação
-COPY --chown=chatbot:nodejs . .
+COPY . .
 
 # Copiar e dar permissão ao script de entrada
-COPY --chown=chatbot:nodejs docker-entrypoint.sh ./
+COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
 # Criar diretório para logs
-RUN mkdir -p /app/logs && chown chatbot:nodejs /app/logs
+RUN mkdir -p /app/logs
 
 # Configurar variáveis de ambiente
 ENV NODE_ENV=production \
@@ -73,12 +69,9 @@ ENV NODE_ENV=production \
 # Expor porta
 EXPOSE 3001
 
-# Mudar para usuário não-root
-USER chatbot
-
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node healthcheck.js
+    CMD curl -f http://localhost:3001/api/health || exit 1
 
 # Usar script de entrada personalizado
 ENTRYPOINT ["dumb-init", "--", "./docker-entrypoint.sh"]
