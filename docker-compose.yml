@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  roi-chatbot:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: roi-chatbot-training
+    restart: unless-stopped
+    
+    # Variáveis de ambiente
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+    
+    # Mapear arquivo .env
+    env_file:
+      - .env.production
+    
+    # Portas
+    ports:
+      - "3000:3000"
+    
+    # Volumes para persistência
+    volumes:
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+    
+    # Configurações de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Configurações de rede
+    networks:
+      - roi-network
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: roi-nginx
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+    
+    depends_on:
+      - roi-chatbot
+    
+    networks:
+      - roi-network
+
+networks:
+  roi-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
