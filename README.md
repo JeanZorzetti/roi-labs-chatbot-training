@@ -235,3 +235,4 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 **ROI Labs** - Transformando ideias em soluções inteligentes 🤖🐳
 
 **Versão otimizada para VPS/Docker - Deploy em minutos!**
+"# ROI Labs Chatbot Training - Build Ready" 
