@@ -1,0 +1,124 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: jeanzvh/roi-chatbot-training
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Test Docker image
+      if: github.event_name != 'pull_request'
+      run: |
+        echo "Testing Docker image..."
+        docker run --rm -d \
+          --name test-container \
+          -p 3001:3001 \
+          -e NODE_ENV=production \
+          -e PORT=3001 \
+          -e HOST=0.0.0.0 \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        
+        # Wait for container to start
+        sleep 30
+        
+        # Test health endpoint
+        curl -f http://localhost:3001/api/health || exit 1
+        
+        # Cleanup
+        docker stop test-container
+
+    - name: Generate deployment config
+      if: github.event_name != 'pull_request'
+      run: |
+        cat > easypanel-deploy.json << EOF
+        {
+          "name": "roi-labs-chatbot-training",
+          "image": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest",
+          "port": 3001,
+          "env": {
+            "NODE_ENV": "production",
+            "PORT": "3001",
+            "HOST": "0.0.0.0",
+            "DOCKER_ENV": "true"
+          },
+          "healthCheck": {
+            "path": "/api/health",
+            "port": 3001,
+            "initialDelaySeconds": 40,
+            "periodSeconds": 30
+          },
+          "resources": {
+            "limits": {
+              "memory": "1Gi",
+              "cpu": "1000m"
+            },
+            "requests": {
+              "memory": "512Mi",
+              "cpu": "500m"
+            }
+          },
+          "volumes": [
+            {
+              "name": "logs",
+              "mountPath": "/app/logs",
+              "size": "1Gi"
+            }
+          ]
+        }
+        EOF
+
+    - name: Upload deployment config
+      if: github.event_name != 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: easypanel-config
+        path: easypanel-deploy.json

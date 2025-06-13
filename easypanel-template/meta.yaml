@@ -1,0 +1,84 @@
+name: ROI Labs Chatbot Training
+description: Sistema de treinamento de chatbot por crawling de sites com IA
+instructions: |
+  Este template implanta o ROI Labs Chatbot Training, um sistema avançado para treinar chatbots através do crawling inteligente de websites.
+
+  ## Pré-requisitos
+
+  Antes de implantar este template, você precisa:
+
+  1. **Conta no Supabase** (gratuita em supabase.com)
+     - Crie um novo projeto
+     - Obtenha a URL do projeto e a chave anônima
+     - Configure as tabelas necessárias (executar script SQL fornecido)
+
+  2. **Chave da OpenAI** (opcional, para funcionalidades avançadas)
+     - Conta em platform.openai.com
+     - Gere uma API key
+
+  ## Configuração Inicial
+
+  Após o deploy:
+
+  1. **Configure o banco de dados:**
+     - Acesse o Supabase Dashboard
+     - Execute o script SQL fornecido na documentação
+     - Verifique se as tabelas foram criadas
+
+  2. **Teste a aplicação:**
+     - Acesse `/api/health` para verificar o status
+     - Acesse `/api/info` para ver informações da API
+     - Use `/api/test-auth` para testar autenticação
+
+  3. **Configure um cliente:**
+     - Use a interface web em `/` ou
+     - Faça POST para `/api/clients` com dados do cliente
+
+  ## Uso
+
+  - **Dashboard:** Interface web disponível na URL principal
+  - **API:** Endpoints RESTful para integração
+  - **Crawling:** Inicie crawling via `/api/crawling/start`
+  - **Busca:** Consulte conhecimento via `/api/search`
+
+  ## Suporte
+
+  - Email: contato@roilabs.com.br
+  - GitHub: https://github.com/roi-labs/chatbot-training
+  - Documentação: Acesse `/api/info` para ver todos os endpoints
+
+changeLog:
+  - date: 2024-12-20
+    description: Primeira versão do template
+    changes:
+      - Template inicial para Easypanel
+      - Configuração Docker otimizada
+      - Health checks implementados
+      - Variáveis de ambiente configuráveis
+      - Interface web incluída
+
+contributors:
+  - name: ROI Labs
+    url: https://roilabs.com.br
+
+links:
+  - label: GitHub Repository
+    url: https://github.com/roi-labs/chatbot-training
+  - label: ROI Labs Website
+    url: https://roilabs.com.br
+  - label: API Documentation
+    url: https://github.com/roi-labs/chatbot-training#-endpoints-da-api
+  - label: Supabase
+    url: https://supabase.com
+
+tags:
+  - chatbot
+  - ai
+  - crawling
+  - training
+  - node.js
+  - supabase
+  - openai
+  - api
+  - machine-learning
+  - web-scraping

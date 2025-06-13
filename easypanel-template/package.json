@@ -1,0 +1,25 @@
+{
+  "name": "roi-labs-chatbot-training-template",
+  "version": "1.0.0",
+  "description": "Template do Easypanel para ROI Labs Chatbot Training",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc index.ts --outDir dist --target es2020 --module commonjs",
+    "dev": "npm run build && node dist/index.js",
+    "generate-screenshot": "node scripts/generate-screenshot.js"
+  },
+  "keywords": [
+    "easypanel",
+    "template", 
+    "chatbot",
+    "ai",
+    "crawling",
+    "roi-labs"
+  ],
+  "author": "ROI Labs",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

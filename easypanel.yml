@@ -1,70 +1,193 @@
-# Configuração do Easypanel para ROI Labs Chatbot Training
-# Arquivo para facilitar o deploy no Easypanel
+# Configuração otimizada do Easypanel para ROI Labs Chatbot Training
+# Este arquivo substitui o easypanel.yml anterior com configurações mais robustas
 
 name: roi-labs-chatbot-training
 type: docker
+version: "1.0.0"
 
-# Configuração do Docker
+# Configuração do Docker otimizada para Easypanel
 docker:
   dockerfile: Dockerfile
   context: .
   target: production
+  build_args:
+    NODE_ENV: production
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
 
 # Configuração da aplicação
 app:
-  name: roi-labs-chatbot
-  description: Sistema de treinamento de chatbot por crawling
+  name: roi-chatbot-training
+  description: Sistema avançado de treinamento de chatbot por crawling com IA
   framework: nodejs
-  buildCommand: npm install --production
-  startCommand: node server.js
-  port: 3000
+  version: "18"
   
-# Variáveis de ambiente (configure no painel)
-env:
-  NODE_ENV: production
-  PORT: 3000
-  HOST: 0.0.0.0
-  DOCKER_ENV: true
+  # Comandos otimizados
+  build_command: "npm ci --only=production"
+  start_command: "node server.js"
   
-  # Database - Configure no painel Easypanel
-  SUPABASE_URL: ""
-  SUPABASE_ANON_KEY: ""
-  SUPABASE_DB_URL: ""
+  # Configuração de rede
+  port: 3001
+  protocol: http
   
-  # OpenAI - Configure no painel Easypanel
-  OPENAI_API_KEY: ""
-  
-  # Security - Configure com seu domínio
-  ALLOWED_ORIGINS: ""
+  # Configuração de saúde
+  health_check:
+    path: "/api/health"
+    port: 3001
+    initial_delay: 40
+    period: 30
+    timeout: 10
+    failure_threshold: 3
+    success_threshold: 1
 
-# Configuração de recursos
-resources:
-  cpu: 1000m      # 1 CPU core
-  memory: 1Gi     # 1GB RAM
+# Variáveis de ambiente obrigatórias e opcionais
+env:
+  # Configurações básicas
+  NODE_ENV: "production"
+  PORT: "3001"
+  HOST: "0.0.0.0"
+  DOCKER_ENV: "true"
+  TZ: "America/Sao_Paulo"
   
-# Configuração de rede
+  # Configurações de segurança
+  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: "true"
+  PUPPETEER_EXECUTABLE_PATH: "/usr/bin/chromium-browser"
+  
+  # Database - Configure no painel Easypanel (OBRIGATÓRIO)
+  SUPABASE_URL: "${SUPABASE_URL}"
+  SUPABASE_ANON_KEY: "${SUPABASE_ANON_KEY}"
+  SUPABASE_DB_URL: "${SUPABASE_DB_URL}"
+  
+  # AI/ML - Configure no painel Easypanel (OPCIONAL)
+  OPENAI_API_KEY: "${OPENAI_API_KEY}"
+  
+  # Configurações de aplicação
+  ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-$(PRIMARY_DOMAIN)}"
+  RATE_LIMIT_WINDOW_MS: "${RATE_LIMIT_WINDOW_MS:-900000}"
+  RATE_LIMIT_MAX_REQUESTS: "${RATE_LIMIT_MAX_REQUESTS:-1000}"
+  LOG_LEVEL: "${LOG_LEVEL:-info}"
+
+# Configuração de recursos otimizada
+resources:
+  # Limites máximos
+  limits:
+    cpu: "1000m"      # 1 CPU core
+    memory: "1Gi"     # 1GB RAM
+    ephemeral_storage: "2Gi"
+  
+  # Recursos garantidos
+  requests:
+    cpu: "500m"       # 0.5 CPU core garantido
+    memory: "512Mi"   # 512MB RAM garantido
+    ephemeral_storage: "1Gi"
+
+# Configuração de rede e domínios
 network:
   ports:
-    - containerPort: 3000
+    - name: http
+      container_port: 3001
       protocol: TCP
-      
-# Health check
-health:
-  path: /api/health
-  port: 3000
-  initialDelaySeconds: 30
-  periodSeconds: 30
-  timeoutSeconds: 10
-  failureThreshold: 3
+  
+  # SSL automático via Easypanel
+  ssl:
+    enabled: true
+    redirect_http: true
 
-# Configuração de volumes (logs)
+# Configuração de volumes persistentes
 volumes:
   - name: logs
-    mountPath: /app/logs
-    size: 1Gi
+    mount_path: "/app/logs"
+    size: "1Gi"
+    access_mode: "ReadWriteOnce"
+    storage_class: "default"
 
-# Configuração de backup (opcional)
+# Configuração de backup automático
 backup:
   enabled: false
   schedule: "0 2 * * *"  # Todo dia às 2h
-  retention: 7           # 7 dias
+  retention_days: 7
+  include_volumes: ["logs"]
+
+# Configuração de monitoramento
+monitoring:
+  enabled: true
+  metrics_path: "/metrics"
+  metrics_port: 3001
+  
+  # Alertas básicos
+  alerts:
+    - name: "high_memory_usage"
+      condition: "memory_usage > 80%"
+      duration: "5m"
+    - name: "high_cpu_usage"
+      condition: "cpu_usage > 80%"
+      duration: "5m"
+    - name: "health_check_failed"
+      condition: "health_check_failed"
+      duration: "2m"
+
+# Configuração de escalabilidade
+scaling:
+  enabled: false  # Mantenha false para versão inicial
+  min_replicas: 1
+  max_replicas: 3
+  target_cpu_utilization: 70
+  target_memory_utilization: 80
+
+# Configuração de segurança
+security:
+  run_as_non_root: true
+  run_as_user: 1001
+  fs_group: 1001
+  
+  # Security context
+  security_context:
+    allow_privilege_escalation: false
+    read_only_root_filesystem: false
+    capabilities:
+      drop: ["ALL"]
+
+# Configuração de logs
+logging:
+  driver: "json-file"
+  options:
+    max_size: "10m"
+    max_file: "3"
+  
+  # Estrutura de logs
+  structured: true
+  level: "info"
+
+# Configuração de restart policy
+restart_policy:
+  condition: "unless-stopped"
+  delay: "5s"
+  max_attempts: 3
+  window: "120s"
+
+# Configurações específicas do Easypanel
+easypanel:
+  category: "AI & Machine Learning"
+  tags: ["chatbot", "ai", "crawling", "nodejs", "supabase"]
+  
+  # Configurações de deploy
+  deploy:
+    strategy: "rolling_update"
+    max_unavailable: 0
+    max_surge: 1
+  
+  # Configurações de domínio
+  domain:
+    auto_ssl: true
+    force_ssl: true
+    
+# Dependências opcionais (outros serviços)
+dependencies:
+  - name: "postgres"
+    type: "database"
+    version: "15"
+    optional: true
+    
+  - name: "redis"
+    type: "cache"
+    version: "7"
+    optional: true

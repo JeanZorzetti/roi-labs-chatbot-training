@@ -1,0 +1,64 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f093fb;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f5576c;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#grad1)" stroke="none"/>
+  
+  <!-- Robot head -->
+  <rect x="35" y="35" width="58" height="48" rx="8" ry="8" fill="white" opacity="0.9"/>
+  
+  <!-- Eyes -->
+  <circle cx="48" cy="50" r="6" fill="url(#grad2)"/>
+  <circle cx="80" cy="50" r="6" fill="url(#grad2)"/>
+  
+  <!-- Eye pupils -->
+  <circle cx="48" cy="50" r="2" fill="white"/>
+  <circle cx="80" cy="50" r="2" fill="white"/>
+  
+  <!-- Mouth/screen -->
+  <rect x="40" y="60" width="48" height="15" rx="7" ry="7" fill="url(#grad2)" opacity="0.8"/>
+  
+  <!-- Text lines in mouth -->
+  <rect x="44" y="63" width="20" height="1.5" rx="0.5" fill="white"/>
+  <rect x="44" y="66" width="32" height="1.5" rx="0.5" fill="white"/>
+  <rect x="44" y="69" width="16" height="1.5" rx="0.5" fill="white"/>
+  
+  <!-- Antennae -->
+  <line x1="52" y1="35" x2="48" y2="25" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <line x1="76" y1="35" x2="80" y2="25" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="25" r="3" fill="white"/>
+  <circle cx="80" cy="25" r="3" fill="white"/>
+  
+  <!-- Body -->
+  <rect x="40" y="85" width="48" height="30" rx="5" ry="5" fill="white" opacity="0.8"/>
+  
+  <!-- Control buttons -->
+  <circle cx="50" cy="95" r="3" fill="url(#grad1)"/>
+  <circle cx="64" cy="95" r="3" fill="url(#grad2)"/>
+  <circle cx="78" cy="95" r="3" fill="url(#grad1)"/>
+  
+  <!-- Web/network pattern -->
+  <g opacity="0.3" stroke="white" stroke-width="1" fill="none">
+    <line x1="10" y1="20" x2="25" y2="35"/>
+    <line x1="25" y1="35" x2="40" y2="25"/>
+    <line x1="88" y1="25" x2="103" y2="35"/>
+    <line x1="103" y1="35" x2="118" y2="20"/>
+    <line x1="10" y1="108" x2="25" y2="93"/>
+    <line x1="25" y1="93" x2="40" y2="103"/>
+    <line x1="88" y1="103" x2="103" y2="93"/>
+    <line x1="103" y1="93" x2="118" y2="108"/>
+    <circle cx="25" cy="35" r="2"/>
+    <circle cx="103" cy="35" r="2"/>
+    <circle cx="25" cy="93" r="2"/>
+    <circle cx="103" cy="93" r="2"/>
+  </g>
+</svg>
