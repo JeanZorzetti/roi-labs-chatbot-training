@@ -39,7 +39,8 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    dumb-init
+    dumb-init \
+    bash
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
@@ -57,16 +58,20 @@ COPY --from=builder --chown=chatbot:nodejs /app/node_modules ./node_modules
 # Copiar código da aplicação
 COPY --chown=chatbot:nodejs . .
 
+# Copiar e dar permissão ao script de entrada
+COPY --chown=chatbot:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Criar diretório para logs
 RUN mkdir -p /app/logs && chown chatbot:nodejs /app/logs
 
 # Configurar variáveis de ambiente
 ENV NODE_ENV=production \
-    PORT=3000 \
+    PORT=3001 \
     HOST=0.0.0.0
 
 # Expor porta
-EXPOSE 3000
+EXPOSE 3001
 
 # Mudar para usuário não-root
 USER chatbot
@@ -75,8 +80,8 @@ USER chatbot
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node healthcheck.js
 
-# Usar dumb-init para melhor manejo de sinais
-ENTRYPOINT ["dumb-init", "--"]
+# Usar script de entrada personalizado
+ENTRYPOINT ["dumb-init", "--", "./docker-entrypoint.sh"]
 
 # Comando para iniciar a aplicação
 CMD ["node", "server.js"]
