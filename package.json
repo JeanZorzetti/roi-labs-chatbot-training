@@ -1,0 +1,57 @@
+{
+  "name": "roi-labs-chatbot-training",
+  "version": "1.0.0",
+  "description": "Sistema de treinamento de chatbot por crawling - Otimizado para VPS/Docker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "start:docker": "NODE_ENV=production HOST=0.0.0.0 node server.js",
+    "dev": "nodemon src/app.js",
+    "install:prod": "npm install --only=production",
+    "docker:build": "docker build -t roi-chatbot .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env.production roi-chatbot",
+    "docker:compose": "docker-compose up -d --build",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f roi-chatbot",
+    "health": "curl -f http://localhost:3000/api/health || exit 1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chatbot",
+    "crawling",
+    "training",
+    "ai",
+    "docker",
+    "vps",
+    "easypanel",
+    "hosting"
+  ],
+  "author": "ROI Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "axios": "^1.9.0",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "puppeteer": "^24.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/roi-labs/chatbot-training.git"
+  },
+  "bugs": {
+    "url": "https://github.com/roi-labs/chatbot-training/issues"
+  },
+  "homepage": "https://github.com/roi-labs/chatbot-training#readme"
+}

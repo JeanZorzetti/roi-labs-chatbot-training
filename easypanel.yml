@@ -1,0 +1,70 @@
+# Configuração do Easypanel para ROI Labs Chatbot Training
+# Arquivo para facilitar o deploy no Easypanel
+
+name: roi-labs-chatbot-training
+type: docker
+
+# Configuração do Docker
+docker:
+  dockerfile: Dockerfile
+  context: .
+  target: production
+
+# Configuração da aplicação
+app:
+  name: roi-labs-chatbot
+  description: Sistema de treinamento de chatbot por crawling
+  framework: nodejs
+  buildCommand: npm install --production
+  startCommand: node server.js
+  port: 3000
+  
+# Variáveis de ambiente (configure no painel)
+env:
+  NODE_ENV: production
+  PORT: 3000
+  HOST: 0.0.0.0
+  DOCKER_ENV: true
+  
+  # Database - Configure no painel Easypanel
+  SUPABASE_URL: ""
+  SUPABASE_ANON_KEY: ""
+  SUPABASE_DB_URL: ""
+  
+  # OpenAI - Configure no painel Easypanel
+  OPENAI_API_KEY: ""
+  
+  # Security - Configure com seu domínio
+  ALLOWED_ORIGINS: ""
+
+# Configuração de recursos
+resources:
+  cpu: 1000m      # 1 CPU core
+  memory: 1Gi     # 1GB RAM
+  
+# Configuração de rede
+network:
+  ports:
+    - containerPort: 3000
+      protocol: TCP
+      
+# Health check
+health:
+  path: /api/health
+  port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# Configuração de volumes (logs)
+volumes:
+  - name: logs
+    mountPath: /app/logs
+    size: 1Gi
+
+# Configuração de backup (opcional)
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Todo dia às 2h
+  retention: 7           # 7 dias
