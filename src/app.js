@@ -40,7 +40,7 @@ if (process.env.NODE_ENV === 'production') {
 // Configuração de CORS otimizada para produção
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'])
+        ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3001'])
         : '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'X-API-Key', 'Authorization', 'X-Request-ID'],
@@ -327,7 +327,7 @@ app.use(errorLogger);
 // Middleware de tratamento de erros global
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const server = app.listen(PORT, HOST, () => {
