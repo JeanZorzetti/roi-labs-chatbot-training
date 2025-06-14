@@ -10,23 +10,30 @@ console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`📍 Port: ${PORT}`);
 console.log(`📍 Host: ${HOST}`);
 
+// Log all requests
+app.use((req, res, next) => {
+  console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`);
+  next();
+});
+
 // Basic middleware
 app.use(cors());
 app.use(express.json());
 
-// Health checks
+// Health checks with detailed logging
 app.get('/health', (req, res) => {
-  console.log('✅ Health check accessed');
+  console.log('✅ Health check accessed via /health');
   res.status(200).send('OK');
 });
 
 app.get('/api/health', (req, res) => {
-  console.log('✅ API Health check accessed');
+  console.log('✅ API Health check accessed via /api/health');
   res.status(200).json({ 
     status: 'healthy',
     message: 'ROI Labs Chatbot Training is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    uptime: process.uptime()
   });
 });
 
@@ -53,10 +60,12 @@ app.get('/', (req, res) => {
           <h1>🤖 ROI Labs Chatbot Training</h1>
           <p class="status">✅ API is running successfully!</p>
           <div class="links">
-            <a href="/api/health">Health Check</a>
+            <a href="/health">Health Check</a>
+            <a href="/api/health">API Health</a>
             <a href="/api/info">API Info</a>
           </div>
           <p><small>Version: 1.0.0 | Environment: ${process.env.NODE_ENV || 'development'}</small></p>
+          <p><small>Server Time: ${new Date().toISOString()}</small></p>
         </div>
       </body>
     </html>
@@ -72,6 +81,8 @@ app.get('/api/info', (req, res) => {
     description: 'Sistema de treinamento de chatbot por crawling de sites com IA',
     status: 'running',
     environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
     endpoints: [
       { path: '/', method: 'GET', description: 'Homepage' },
       { path: '/health', method: 'GET', description: 'Simple health check' },
@@ -82,11 +93,12 @@ app.get('/api/info', (req, res) => {
 });
 
 // 404 handler
-app.get('*', (req, res) => {
-  console.log('❌ 404 - Route not found:', req.path);
+app.use('*', (req, res) => {
+  console.log('❌ 404 - Route not found:', req.method, req.originalUrl);
   res.status(404).json({ 
     error: 'Endpoint not found',
-    path: req.path,
+    method: req.method,
+    path: req.originalUrl,
     available_endpoints: ['/', '/health', '/api/health', '/api/info']
   });
 });
@@ -107,6 +119,28 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`🏥 Health check: http://${HOST}:${PORT}/health`);
   console.log(`📋 API info: http://${HOST}:${PORT}/api/info`);
   console.log('🎉 Ready to receive requests!');
+  
+  // Test internal health check
+  setTimeout(() => {
+    console.log('🔄 Testing internal health check...');
+    const http = require('http');
+    const options = {
+      hostname: 'localhost',
+      port: PORT,
+      path: '/health',
+      method: 'GET'
+    };
+    
+    const req = http.request(options, (res) => {
+      console.log(`🏥 Internal health check response: ${res.statusCode}`);
+    });
+    
+    req.on('error', (err) => {
+      console.log('❌ Internal health check error:', err.message);
+    });
+    
+    req.end();
+  }, 2000);
 });
 
 // Error handling
