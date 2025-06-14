@@ -33,7 +33,9 @@ app.get('/api/health', (req, res) => {
     message: 'ROI Labs Chatbot Training is running',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    host: HOST,
+    port: PORT
   });
 });
 
@@ -66,6 +68,7 @@ app.get('/', (req, res) => {
           </div>
           <p><small>Version: 1.0.0 | Environment: ${process.env.NODE_ENV || 'development'}</small></p>
           <p><small>Server Time: ${new Date().toISOString()}</small></p>
+          <p><small>Host: ${HOST}:${PORT}</small></p>
         </div>
       </body>
     </html>
@@ -83,6 +86,8 @@ app.get('/api/info', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     uptime: process.uptime(),
     memory: process.memoryUsage(),
+    host: HOST,
+    port: PORT,
     endpoints: [
       { path: '/', method: 'GET', description: 'Homepage' },
       { path: '/health', method: 'GET', description: 'Simple health check' },
@@ -119,28 +124,6 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`🏥 Health check: http://${HOST}:${PORT}/health`);
   console.log(`📋 API info: http://${HOST}:${PORT}/api/info`);
   console.log('🎉 Ready to receive requests!');
-  
-  // Test internal health check
-  setTimeout(() => {
-    console.log('🔄 Testing internal health check...');
-    const http = require('http');
-    const options = {
-      hostname: 'localhost',
-      port: PORT,
-      path: '/health',
-      method: 'GET'
-    };
-    
-    const req = http.request(options, (res) => {
-      console.log(`🏥 Internal health check response: ${res.statusCode}`);
-    });
-    
-    req.on('error', (err) => {
-      console.log('❌ Internal health check error:', err.message);
-    });
-    
-    req.end();
-  }, 2000);
 });
 
 // Error handling
