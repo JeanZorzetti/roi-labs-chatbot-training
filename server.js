@@ -1,65 +1,136 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-console.log('🚀 [DEBUG] Iniciando servidor...');
-console.log('📍 [DEBUG] PORT:', PORT);
-console.log('📍 [DEBUG] HOST:', HOST);
-console.log('📍 [DEBUG] NODE_ENV:', process.env.NODE_ENV);
+console.log('🚀 ROI Labs Chatbot Training - Starting...');
+console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📍 Port: ${PORT}`);
+console.log(`📍 Host: ${HOST}`);
 
-// Middleware básico
+// Basic middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check simples
+// Health checks
 app.get('/health', (req, res) => {
-  console.log('🏥 [DEBUG] Health check chamado');
+  console.log('✅ Health check accessed');
   res.status(200).send('OK');
 });
 
 app.get('/api/health', (req, res) => {
-  console.log('🏥 [DEBUG] API Health check chamado');
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+  console.log('✅ API Health check accessed');
+  res.status(200).json({ 
+    status: 'healthy',
+    message: 'ROI Labs Chatbot Training is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
 
-// Root
+// Root endpoint
 app.get('/', (req, res) => {
-  console.log('🏠 [DEBUG] Root endpoint chamado');
-  res.send('<h1>🤖 ROI Labs Chatbot - DEBUG VERSION</h1><p>Servidor funcionando!</p>');
+  console.log('🏠 Root endpoint accessed');
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>ROI Labs Chatbot Training</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          h1 { color: #333; margin-bottom: 20px; }
+          .links { margin: 30px 0; }
+          .links a { margin: 0 15px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+          .links a:hover { background: #0056b3; }
+          .status { color: #28a745; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🤖 ROI Labs Chatbot Training</h1>
+          <p class="status">✅ API is running successfully!</p>
+          <div class="links">
+            <a href="/api/health">Health Check</a>
+            <a href="/api/info">API Info</a>
+          </div>
+          <p><small>Version: 1.0.0 | Environment: ${process.env.NODE_ENV || 'development'}</small></p>
+        </div>
+      </body>
+    </html>
+  `);
 });
 
-// Catch errors
+// API info
+app.get('/api/info', (req, res) => {
+  console.log('ℹ️ API Info accessed');
+  res.json({
+    name: 'ROI Labs Chatbot Training API',
+    version: '1.0.0',
+    description: 'Sistema de treinamento de chatbot por crawling de sites com IA',
+    status: 'running',
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: [
+      { path: '/', method: 'GET', description: 'Homepage' },
+      { path: '/health', method: 'GET', description: 'Simple health check' },
+      { path: '/api/health', method: 'GET', description: 'Detailed health check' },
+      { path: '/api/info', method: 'GET', description: 'API information' }
+    ]
+  });
+});
+
+// 404 handler
+app.get('*', (req, res) => {
+  console.log('❌ 404 - Route not found:', req.path);
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    path: req.path,
+    available_endpoints: ['/', '/health', '/api/health', '/api/info']
+  });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
-  console.error('❌ [DEBUG] Erro:', err);
-  res.status(500).json({ error: 'Erro interno' });
+  console.error('❌ Server error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message 
+  });
 });
 
 // Start server
-console.log('🔄 [DEBUG] Tentando iniciar servidor...');
 const server = app.listen(PORT, HOST, () => {
-  console.log('✅ [DEBUG] Servidor iniciado com sucesso!');
-  console.log(`🌐 [DEBUG] Endereço: http://${HOST}:${PORT}`);
-  console.log('🎉 [DEBUG] Pronto para receber requisições!');
+  console.log('✅ ROI Labs Chatbot Training API started successfully!');
+  console.log(`🌐 Server running at: http://${HOST}:${PORT}`);
+  console.log(`🏥 Health check: http://${HOST}:${PORT}/health`);
+  console.log(`📋 API info: http://${HOST}:${PORT}/api/info`);
+  console.log('🎉 Ready to receive requests!');
 });
 
+// Error handling
 server.on('error', (err) => {
-  console.error('❌ [DEBUG] Erro do servidor:', err);
+  console.error('❌ Server error:', err);
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ [DEBUG] Porta ${PORT} já está em uso!`);
+    console.error(`❌ Port ${PORT} is already in use!`);
+    process.exit(1);
   }
-  process.exit(1);
 });
 
-process.on('uncaughtException', (err) => {
-  console.error('❌ [DEBUG] Exceção não capturada:', err);
-  process.exit(1);
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 Received SIGTERM, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed successfully');
+    process.exit(0);
+  });
 });
 
-process.on('unhandledRejection', (err) => {
-  console.error('❌ [DEBUG] Promise rejeitada:', err);
-  process.exit(1);
+process.on('SIGINT', () => {
+  console.log('🛑 Received SIGINT, shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed successfully');
+    process.exit(0);
+  });
 });
