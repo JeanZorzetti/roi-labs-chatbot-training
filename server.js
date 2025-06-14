@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 80; // Mudança para porta 80
 const HOST = process.env.HOST || '0.0.0.0';
 
 console.log('🚀 ROI Labs Chatbot Training - Starting...');
@@ -14,7 +14,8 @@ console.log(`📍 Host: ${HOST}`);
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
   const userAgent = req.get('User-Agent') || 'Unknown';
-  console.log(`📥 [${timestamp}] ${req.method} ${req.originalUrl} - IP: ${req.ip} - UA: ${userAgent.substring(0, 50)}`);
+  const forwardedFor = req.get('X-Forwarded-For') || req.ip;
+  console.log(`📥 [${timestamp}] ${req.method} ${req.originalUrl} - IP: ${forwardedFor} - UA: ${userAgent.substring(0, 50)}`);
   next();
 });
 
@@ -83,22 +84,27 @@ app.get('/', (req, res) => {
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; margin: 0; }
-          .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-          h1 { color: #333; margin-bottom: 20px; }
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; color: white; }
+          .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.95); padding: 40px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); color: #333; }
+          h1 { color: #333; margin-bottom: 20px; font-size: 2.5em; }
+          .status { color: #28a745; font-weight: bold; font-size: 20px; margin: 20px 0; }
           .links { margin: 30px 0; }
-          .links a { margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }
-          .links a:hover { background: #0056b3; }
-          .status { color: #28a745; font-weight: bold; font-size: 18px; }
-          .endpoints { text-align: left; margin: 20px 0; }
-          .endpoints h3 { color: #666; }
-          .endpoints code { background: #f8f9fa; padding: 2px 5px; border-radius: 3px; }
+          .links a { margin: 5px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; display: inline-block; transition: all 0.3s; }
+          .links a:hover { background: #0056b3; transform: translateY(-2px); }
+          .endpoints { text-align: left; margin: 25px 0; background: #f8f9fa; padding: 20px; border-radius: 8px; }
+          .endpoints h3 { color: #666; margin-top: 0; }
+          .endpoints code { background: #e9ecef; padding: 4px 8px; border-radius: 4px; color: #d63384; }
+          .info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; }
         </style>
       </head>
       <body>
         <div class="container">
           <h1>🤖 ROI Labs Chatbot Training</h1>
-          <p class="status">✅ API is running successfully!</p>
+          <p class="status">✅ API funcionando na porta ${PORT}!</p>
+          
+          <div class="info">
+            <strong>🎉 SUCESSO!</strong> A aplicação está rodando e funcionando perfeitamente!
+          </div>
           
           <div class="links">
             <a href="/health">Health Check</a>
@@ -109,21 +115,24 @@ app.get('/', (req, res) => {
           </div>
 
           <div class="endpoints">
-            <h3>Available Health Check Endpoints:</h3>
+            <h3>📋 Endpoints de Health Check Disponíveis:</h3>
             <ul>
-              <li><code>/health</code> - Simple health check</li>
-              <li><code>/healthz</code> - Kubernetes style</li>
+              <li><code>/health</code> - Health check simples</li>
+              <li><code>/healthz</code> - Estilo Kubernetes</li>
               <li><code>/health/ready</code> - Readiness probe</li>
               <li><code>/health/live</code> - Liveness probe</li>
-              <li><code>/api/health</code> - Detailed health info</li>
-              <li><code>/ping</code> - Simple ping-pong</li>
-              <li><code>/status</code> - System status</li>
+              <li><code>/api/health</code> - Informações detalhadas de saúde</li>
+              <li><code>/ping</code> - Ping simples</li>
+              <li><code>/status</code> - Status do sistema</li>
             </ul>
           </div>
           
-          <p><small>Version: 1.0.0 | Environment: ${process.env.NODE_ENV || 'development'}</small></p>
-          <p><small>Server Time: ${new Date().toISOString()}</small></p>
-          <p><small>Host: ${HOST}:${PORT}</small></p>
+          <div class="info">
+            <p><strong>Versão:</strong> 1.0.0</p>
+            <p><strong>Ambiente:</strong> ${process.env.NODE_ENV || 'development'}</p>
+            <p><strong>Servidor:</strong> ${HOST}:${PORT}</p>
+            <p><strong>Horário:</strong> ${new Date().toISOString()}</p>
+          </div>
         </div>
       </body>
     </html>
