@@ -26,17 +26,17 @@ RUN npm ci --only=production && npm cache clean --force
 # Copiar código da aplicação
 COPY . .
 
-# Configurar variáveis de ambiente - PORTA 80
+# Configurar variáveis de ambiente - VOLTA PARA 3001
 ENV NODE_ENV=production \
-    PORT=80 \
+    PORT=3001 \
     HOST=0.0.0.0
 
-# Expor porta 80
-EXPOSE 80
+# Expor porta 3001
+EXPOSE 3001
 
-# Health check na porta 80
+# Health check na porta 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:80/health || exit 1
+    CMD curl -f http://localhost:3001/health || exit 1
 
 # Comando para iniciar a aplicação
 CMD ["node", "server.js"]
