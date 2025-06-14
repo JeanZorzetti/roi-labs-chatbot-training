@@ -10,9 +10,11 @@ console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`📍 Port: ${PORT}`);
 console.log(`📍 Host: ${HOST}`);
 
-// Log all requests
+// Log all requests with more details
 app.use((req, res, next) => {
-  console.log(`📥 ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.ip}`);
+  const timestamp = new Date().toISOString();
+  const userAgent = req.get('User-Agent') || 'Unknown';
+  console.log(`📥 [${timestamp}] ${req.method} ${req.originalUrl} - IP: ${req.ip} - UA: ${userAgent.substring(0, 50)}`);
   next();
 });
 
@@ -20,10 +22,25 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json());
 
-// Health checks with detailed logging
+// Multiple health check endpoints for maximum compatibility
 app.get('/health', (req, res) => {
   console.log('✅ Health check accessed via /health');
   res.status(200).send('OK');
+});
+
+app.get('/healthz', (req, res) => {
+  console.log('✅ Health check accessed via /healthz (Kubernetes style)');
+  res.status(200).send('OK');
+});
+
+app.get('/health/ready', (req, res) => {
+  console.log('✅ Readiness check accessed via /health/ready');
+  res.status(200).json({ status: 'ready', timestamp: new Date().toISOString() });
+});
+
+app.get('/health/live', (req, res) => {
+  console.log('✅ Liveness check accessed via /health/live');
+  res.status(200).json({ status: 'alive', timestamp: new Date().toISOString() });
 });
 
 app.get('/api/health', (req, res) => {
@@ -39,6 +56,22 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Ping endpoint
+app.get('/ping', (req, res) => {
+  console.log('🏓 Ping accessed');
+  res.status(200).send('pong');
+});
+
+// Status endpoint
+app.get('/status', (req, res) => {
+  console.log('📊 Status accessed');
+  res.status(200).json({ 
+    status: 'running',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   console.log('🏠 Root endpoint accessed');
@@ -47,25 +80,47 @@ app.get('/', (req, res) => {
     <html>
       <head>
         <title>ROI Labs Chatbot Training</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
-          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; margin: 0; }
           .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
           h1 { color: #333; margin-bottom: 20px; }
           .links { margin: 30px 0; }
-          .links a { margin: 0 15px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+          .links a { margin: 5px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }
           .links a:hover { background: #0056b3; }
-          .status { color: #28a745; font-weight: bold; }
+          .status { color: #28a745; font-weight: bold; font-size: 18px; }
+          .endpoints { text-align: left; margin: 20px 0; }
+          .endpoints h3 { color: #666; }
+          .endpoints code { background: #f8f9fa; padding: 2px 5px; border-radius: 3px; }
         </style>
       </head>
       <body>
         <div class="container">
           <h1>🤖 ROI Labs Chatbot Training</h1>
           <p class="status">✅ API is running successfully!</p>
+          
           <div class="links">
             <a href="/health">Health Check</a>
             <a href="/api/health">API Health</a>
             <a href="/api/info">API Info</a>
+            <a href="/ping">Ping</a>
+            <a href="/status">Status</a>
           </div>
+
+          <div class="endpoints">
+            <h3>Available Health Check Endpoints:</h3>
+            <ul>
+              <li><code>/health</code> - Simple health check</li>
+              <li><code>/healthz</code> - Kubernetes style</li>
+              <li><code>/health/ready</code> - Readiness probe</li>
+              <li><code>/health/live</code> - Liveness probe</li>
+              <li><code>/api/health</code> - Detailed health info</li>
+              <li><code>/ping</code> - Simple ping-pong</li>
+              <li><code>/status</code> - System status</li>
+            </ul>
+          </div>
+          
           <p><small>Version: 1.0.0 | Environment: ${process.env.NODE_ENV || 'development'}</small></p>
           <p><small>Server Time: ${new Date().toISOString()}</small></p>
           <p><small>Host: ${HOST}:${PORT}</small></p>
@@ -88,11 +143,17 @@ app.get('/api/info', (req, res) => {
     memory: process.memoryUsage(),
     host: HOST,
     port: PORT,
+    health_endpoints: [
+      '/health', '/healthz', '/health/ready', '/health/live', 
+      '/api/health', '/ping', '/status'
+    ],
     endpoints: [
       { path: '/', method: 'GET', description: 'Homepage' },
       { path: '/health', method: 'GET', description: 'Simple health check' },
       { path: '/api/health', method: 'GET', description: 'Detailed health check' },
-      { path: '/api/info', method: 'GET', description: 'API information' }
+      { path: '/api/info', method: 'GET', description: 'API information' },
+      { path: '/ping', method: 'GET', description: 'Ping endpoint' },
+      { path: '/status', method: 'GET', description: 'Status endpoint' }
     ]
   });
 });
@@ -104,7 +165,7 @@ app.use('*', (req, res) => {
     error: 'Endpoint not found',
     method: req.method,
     path: req.originalUrl,
-    available_endpoints: ['/', '/health', '/api/health', '/api/info']
+    available_endpoints: ['/', '/health', '/api/health', '/api/info', '/ping', '/status']
   });
 });
 
@@ -121,7 +182,12 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, HOST, () => {
   console.log('✅ ROI Labs Chatbot Training API started successfully!');
   console.log(`🌐 Server running at: http://${HOST}:${PORT}`);
-  console.log(`🏥 Health check: http://${HOST}:${PORT}/health`);
+  console.log(`🏥 Health checks available at:`);
+  console.log(`   - http://${HOST}:${PORT}/health`);
+  console.log(`   - http://${HOST}:${PORT}/healthz`);
+  console.log(`   - http://${HOST}:${PORT}/health/ready`);
+  console.log(`   - http://${HOST}:${PORT}/health/live`);
+  console.log(`   - http://${HOST}:${PORT}/ping`);
   console.log(`📋 API info: http://${HOST}:${PORT}/api/info`);
   console.log('🎉 Ready to receive requests!');
 });
