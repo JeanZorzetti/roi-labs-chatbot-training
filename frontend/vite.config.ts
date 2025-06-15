@@ -21,5 +21,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          charts: ['chart.js', 'react-chartjs-2'],
+          ui: ['@headlessui/react', '@heroicons/react', 'framer-motion'],
+        },
+      },
+    },
+  },
+  define: {
+    // Garantir que as variáveis de ambiente sejam substituídas corretamente
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
   },
 })
