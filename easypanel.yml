@@ -1,70 +1,86 @@
-# Configuração do Easypanel para ROI Labs Chatbot Training
-# Arquivo para facilitar o deploy no Easypanel
+# Easypanel Configuration for ROI Labs Chatbot Training
+# Optimized for production deployment with modern React dashboard
 
 name: roi-labs-chatbot-training
-type: docker
-
-# Configuração do Docker
-docker:
-  dockerfile: Dockerfile
-  context: .
-  target: production
-
-# Configuração da aplicação
-app:
-  name: roi-labs-chatbot
-  description: Sistema de treinamento de chatbot por crawling
-  framework: nodejs
-  buildCommand: npm install --production
-  startCommand: node server.js
-  port: 3000
-  
-# Variáveis de ambiente (configure no painel)
-env:
-  NODE_ENV: production
-  PORT: 3000
-  HOST: 0.0.0.0
-  DOCKER_ENV: true
-  
-  # Database - Configure no painel Easypanel
-  SUPABASE_URL: ""
-  SUPABASE_ANON_KEY: ""
-  SUPABASE_DB_URL: ""
-  
-  # OpenAI - Configure no painel Easypanel
-  OPENAI_API_KEY: ""
-  
-  # Security - Configure com seu domínio
-  ALLOWED_ORIGINS: ""
-
-# Configuração de recursos
-resources:
-  cpu: 1000m      # 1 CPU core
-  memory: 1Gi     # 1GB RAM
-  
-# Configuração de rede
-network:
-  ports:
-    - containerPort: 3000
-      protocol: TCP
+services:
+  app:
+    # Main application service
+    image:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    
+    # Environment variables for production
+    env:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
       
-# Health check
-health:
-  path: /api/health
-  port: 3000
-  initialDelaySeconds: 30
-  periodSeconds: 30
-  timeoutSeconds: 10
-  failureThreshold: 3
+      # Database (configure these in Easypanel environment)
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      
+      # Optional: External APIs (configure if needed)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      
+      # Security
+      JWT_SECRET: ${JWT_SECRET}
+      RATE_LIMIT_MAX: 1000
+      RATE_LIMIT_WINDOW: 900000
+      
+      # CORS for production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      
+      # Optional: Redis for caching
+      REDIS_URL: ${REDIS_URL}
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    
+    # Ports
+    ports:
+      - "3000:3000"
+    
+    # Volumes for persistence (optional)
+    volumes:
+      - logs:/app/logs
+      - uploads:/app/uploads
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Labels for Easypanel
+    labels:
+      - "easypanel.enabled=true"
+      - "easypanel.project=roi-labs-chatbot-training"
+      - "easypanel.service=app"
 
-# Configuração de volumes (logs)
+# Named volumes
 volumes:
-  - name: logs
-    mountPath: /app/logs
-    size: 1Gi
+  logs:
+    driver: local
+  uploads:
+    driver: local
 
-# Configuração de backup (opcional)
-backup:
-  enabled: false
-  schedule: "0 2 * * *"  # Todo dia às 2h
-  retention: 7           # 7 dias
+# Networks
+networks:
+  default:
+    name: roi-labs-network
+    external: false
