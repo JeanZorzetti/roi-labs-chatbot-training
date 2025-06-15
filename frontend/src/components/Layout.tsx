@@ -1,4 +1,4 @@
-import React from 'react'
+import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -25,7 +25,7 @@ const navigation = [
 ]
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isDark, toggleTheme } = useThemeStore()
   const { data: health } = useHealth()
   const location = useLocation()
@@ -90,7 +90,7 @@ export default function Layout() {
                 <div className="flex items-center gap-x-2">
                   <div className={cn(
                     'status-dot',
-                    health.status === 'healthy' ? 'status-online' : 'status-offline'
+                    health.status === 'healthy' ? 'status-online' : 'status-error'
                   )} />
                   <span className="text-sm text-gray-600 dark:text-gray-400">
                     {health.status === 'healthy' ? 'Online' : 'Offline'}
@@ -115,7 +115,7 @@ export default function Layout() {
               {/* Version info */}
               {health && (
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  v{health.version}
+                  v{health.version || '1.0.0'}
                 </span>
               )}
             </div>
@@ -146,16 +146,16 @@ function SidebarNavigation({ currentPath }: { currentPath: string }) {
                   to={item.href}
                   className={cn(
                     isActive
-                      ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:text-primary-700 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800',
                     'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium transition-colors'
                   )}
                 >
                   <item.icon
                     className={cn(
                       isActive
-                        ? 'text-primary-700 dark:text-primary-400'
-                        : 'text-gray-400 group-hover:text-primary-700 dark:group-hover:text-primary-400',
+                        ? 'text-blue-700 dark:text-blue-400'
+                        : 'text-gray-400 group-hover:text-blue-700 dark:group-hover:text-blue-400',
                       'h-6 w-6 shrink-0 transition-colors'
                     )}
                   />
