@@ -13,6 +13,7 @@ function App() {
   const { isDark } = useThemeStore()
 
   useEffect(() => {
+    console.log('🎨 ROI Labs Dashboard - Theme:', isDark ? 'Dark' : 'Light')
     if (isDark) {
       document.documentElement.classList.add('dark')
     } else {
@@ -20,6 +21,7 @@ function App() {
     }
   }, [isDark])
 
+  // App version: 1.0.0 - Build 2025-06-15
   return (
     <div className={cn('min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300')}>
       <Routes>
