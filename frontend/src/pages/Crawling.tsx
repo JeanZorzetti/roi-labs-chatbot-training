@@ -128,6 +128,9 @@ const Crawling = () => {
           <div className="lg:col-span-2">
             <JobsList 
               jobs={jobs}
+              onRefresh={handleRefresh}
+              onCancel={handleCancelCrawling}
+              onDelete={handleDeleteCrawling}
             />
           </div>
         </div>
@@ -135,6 +138,9 @@ const Crawling = () => {
         <div className="grid grid-cols-1 gap-6">
           <JobsTable 
             jobs={jobs}
+            onRefresh={handleRefresh}
+            onCancel={handleCancelCrawling}
+            onDelete={handleDeleteCrawling}
           />
         </div>
       </div>
