@@ -1,30 +1,27 @@
-# Deployment Trigger
+# Deployment Trigger - FORCE REBUILD
 
 ## Latest Changes
+- URGENT: Force rebuild after service removal due to port conflict
 - Fix: TypeScript errors resolved for frontend-backend integration
 - Add: Data mapper to convert API types to frontend component types
-- Fix: Update Crawling page to use data mapper for type compatibility  
-- Fix: Update JobsList component to accept action handlers and add proper Job interface
-- Fix: Update JobsTable component to accept action handlers and add actions column
-- Fix: Restore action handlers to JobsList and JobsTable components in Crawling page
+- Fix: Complete frontend-backend integration with proper type mapping
 
 ## Deployment Timestamp
-2025-06-15T19:30:45Z
+2025-06-15T19:32:00Z
 
-## Changes Summary
-Fixed TypeScript compilation errors by:
-1. Creating dataMapper.ts to convert CrawlingJob to Job types
-2. Updated components to accept proper interfaces
-3. Added action handlers (onRefresh, onCancel, onDelete) to components
-4. Ensured type compatibility between API responses and frontend components
+## Emergency Actions Taken
+1. Removed conflicting Docker service: ia_roi-labs-chatbot-training
+2. Freed port 3001 successfully
+3. Ready for clean deployment
 
 ## Expected Result
-✅ Frontend will compile without TypeScript errors
-✅ Real API integration working properly
-✅ Crawling functionality with proper data mapping
-✅ User actions (cancel, delete, refresh) implemented
+✅ Clean deployment without port conflicts
+✅ Frontend TypeScript compilation successful
+✅ Real API integration working
+✅ Crawling functionality operational
 
-## Notes
-This deployment resolves the TypeScript compilation failure and completes the frontend-backend integration.
+## Status
+🔥 FORCE REBUILD REQUIRED - Service removed, triggering new deployment
 
-Trigger ID: typescript-fix-and-complete-integration-20250615
+Trigger ID: force-rebuild-after-service-removal-20250615
+Build ID: emergency-rebuild-001
