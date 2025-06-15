@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const fs = require('fs');
 const supabase = require('./config/database');
 
 // Importar middlewares
@@ -50,17 +51,17 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Configuração de segurança otimizada
+// Configuração de segurança otimizada para React dashboard
 app.use(helmet({
     crossOriginEmbedderPolicy: false,
     contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.openai.com", "https://*.supabase.co"]
+            connectSrc: ["'self'", "https://api.openai.com", "https://*.supabase.co", process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""]
         }
     } : false
 }));
@@ -100,7 +101,34 @@ app.use(rateLimiter({
     }
 }));
 
-// Servir arquivos estáticos com cache
+// Verificar se existe o dashboard React buildado
+const reactDashboardPath = path.join(__dirname, '../public/dashboard');
+const fallbackDashboardPath = path.join(__dirname, '../public/index.html');
+const hasReactDashboard = fs.existsSync(path.join(reactDashboardPath, 'index.html'));
+
+console.log('🔍 Dashboard paths:');
+console.log(`📁 React dashboard: ${reactDashboardPath} - ${hasReactDashboard ? '✅ Found' : '❌ Not found'}`);
+console.log(`📁 Fallback dashboard: ${fallbackDashboardPath} - ${fs.existsSync(fallbackDashboardPath) ? '✅ Found' : '❌ Not found'}`);
+
+// Servir arquivos estáticos - priorizar React dashboard se disponível
+if (hasReactDashboard) {
+    console.log('🎨 Serving React dashboard from /public/dashboard/');
+    app.use('/static', express.static(path.join(reactDashboardPath, 'assets'), {
+        maxAge: process.env.NODE_ENV === 'production' ? '1y' : 0,
+        etag: true,
+        lastModified: true
+    }));
+    
+    app.use('/assets', express.static(path.join(reactDashboardPath, 'assets'), {
+        maxAge: process.env.NODE_ENV === 'production' ? '1y' : 0,
+        etag: true,
+        lastModified: true
+    }));
+} else {
+    console.log('📄 Serving fallback dashboard from /public/');
+}
+
+// Servir arquivos estáticos gerais
 app.use(express.static(path.join(__dirname, '../public'), {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
     etag: true,
@@ -141,6 +169,10 @@ app.get('/api/health', async (req, res) => {
             version: require('../../package.json').version,
             environment: process.env.NODE_ENV || 'development',
             uptime: Math.floor(process.uptime()),
+            dashboard: {
+                type: hasReactDashboard ? 'React (Modern)' : 'HTML (Fallback)',
+                available: hasReactDashboard || fs.existsSync(fallbackDashboardPath)
+            },
             memory: {
                 used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
                 total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
@@ -260,6 +292,10 @@ app.get('/api/info', (req, res) => {
         version: require('../../package.json').version,
         description: 'Sistema de treinamento de chatbot por crawling de sites',
         environment: process.env.NODE_ENV || 'development',
+        dashboard: {
+            type: hasReactDashboard ? 'React (Modern)' : 'HTML (Fallback)',
+            url: hasReactDashboard ? '/' : '/dashboard.html'
+        },
         endpoints: {
             health: '/api/health',
             auth: '/api/test-auth',
@@ -313,9 +349,35 @@ app.get('/api/system/stats', async (req, res) => {
     }
 });
 
-// Rota principal do dashboard
+// Rota principal do dashboard - servir React ou fallback
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    if (hasReactDashboard) {
+        // Servir React dashboard
+        res.sendFile(path.join(reactDashboardPath, 'index.html'));
+    } else {
+        // Servir fallback dashboard
+        res.sendFile(fallbackDashboardPath);
+    }
+});
+
+// Rota de fallback para React Router (SPA)
+app.get('/*', (req, res) => {
+    // Se for uma requisição de API, não interceptar
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // Se for um arquivo estático, não interceptar
+    if (req.path.includes('.')) {
+        return res.status(404).send('File not found');
+    }
+    
+    // Para outras rotas, servir o React app (SPA routing)
+    if (hasReactDashboard) {
+        res.sendFile(path.join(reactDashboardPath, 'index.html'));
+    } else {
+        res.sendFile(fallbackDashboardPath);
+    }
 });
 
 // Middleware de tratamento de 404
@@ -339,12 +401,14 @@ const server = app.listen(PORT, HOST, () => {
         host: HOST,
         port: PORT,
         version: require('../../package.json').version,
-        nodeVersion: process.version
+        nodeVersion: process.version,
+        dashboard: hasReactDashboard ? 'React (Modern)' : 'HTML (Fallback)'
     });
     
     console.log('🚀 ROI Labs Chatbot Training API iniciada!');
     console.log(`📍 Ambiente: ${env}`);
     console.log(`🌐 Servidor: http://${HOST}:${PORT}`);
+    console.log(`🎨 Dashboard: ${hasReactDashboard ? 'React (Modern)' : 'HTML (Fallback)'}`);
     console.log(`🏥 Health check: http://${HOST}:${PORT}/api/health`);
     console.log(`ℹ️  API info: http://${HOST}:${PORT}/api/info`);
     
