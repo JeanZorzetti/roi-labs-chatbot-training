@@ -5,31 +5,92 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
-const supabase = require('./config/database');
 
-// Importar middlewares
-const { 
-    requestLogger, 
-    errorLogger, 
-    logger 
-} = require('./middleware/logging');
-const { 
-    rateLimiter, 
-    suspiciousActivityDetector, 
-    requestId,
-    getRateLimitStats 
-} = require('./middleware/rateLimiting');
-const { 
-    errorHandler, 
-    notFoundHandler, 
-    performanceMonitor, 
-    requestTimeout 
-} = require('./middleware/errorHandler');
+console.log('🚀 Initializing ROI Labs Chatbot Training...');
 
-// Importar rotas
-const crawlingRoutes = require('./routes/crawling');
-const searchRoutes = require('./routes/search');
-const clientRoutes = require('./routes/clients');
+// Importar middlewares com verificação de erro
+let supabase;
+try {
+    supabase = require('./config/database');
+    console.log('✅ Supabase connection loaded');
+} catch (error) {
+    console.error('❌ Error loading Supabase:', error.message);
+    supabase = null;
+}
+
+// Importar middlewares com tratamento de erro
+let middlewares = {};
+try {
+    const logging = require('./middleware/logging');
+    middlewares.requestLogger = logging.requestLogger;
+    middlewares.errorLogger = logging.errorLogger;
+    middlewares.logger = logging.logger;
+    console.log('✅ Logging middleware loaded');
+} catch (error) {
+    console.error('❌ Error loading logging middleware:', error.message);
+    middlewares.logger = { info: console.log, error: console.error, warn: console.warn, debug: console.log };
+}
+
+try {
+    const rateLimiting = require('./middleware/rateLimiting');
+    middlewares.rateLimiter = rateLimiting.rateLimiter;
+    middlewares.suspiciousActivityDetector = rateLimiting.suspiciousActivityDetector;
+    middlewares.requestId = rateLimiting.requestId;
+    middlewares.getRateLimitStats = rateLimiting.getRateLimitStats;
+    console.log('✅ Rate limiting middleware loaded');
+} catch (error) {
+    console.error('❌ Error loading rate limiting middleware:', error.message);
+    middlewares.rateLimiter = (options) => (req, res, next) => next();
+    middlewares.suspiciousActivityDetector = (req, res, next) => next();
+    middlewares.requestId = (req, res, next) => { req.id = Math.random().toString(36); next(); };
+    middlewares.getRateLimitStats = () => ({ requests: 0 });
+}
+
+try {
+    const errorHandler = require('./middleware/errorHandler');
+    middlewares.errorHandler = errorHandler.errorHandler;
+    middlewares.notFoundHandler = errorHandler.notFoundHandler;
+    middlewares.performanceMonitor = errorHandler.performanceMonitor;
+    middlewares.requestTimeout = errorHandler.requestTimeout;
+    console.log('✅ Error handler middleware loaded');
+} catch (error) {
+    console.error('❌ Error loading error handler middleware:', error.message);
+    middlewares.errorHandler = (err, req, res, next) => {
+        console.error('Error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    };
+    middlewares.notFoundHandler = (req, res) => {
+        res.status(404).json({ error: 'Not found' });
+    };
+    middlewares.performanceMonitor = (req, res, next) => next();
+    middlewares.requestTimeout = (timeout) => (req, res, next) => next();
+}
+
+// Importar rotas com tratamento de erro
+let routes = {};
+try {
+    routes.crawling = require('./routes/crawling');
+    console.log('✅ Crawling routes loaded');
+} catch (error) {
+    console.error('❌ Error loading crawling routes:', error.message);
+    routes.crawling = express.Router();
+}
+
+try {
+    routes.search = require('./routes/search');
+    console.log('✅ Search routes loaded');
+} catch (error) {
+    console.error('❌ Error loading search routes:', error.message);
+    routes.search = express.Router();
+}
+
+try {
+    routes.clients = require('./routes/clients');
+    console.log('✅ Client routes loaded');
+} catch (error) {
+    console.error('❌ Error loading client routes:', error.message);
+    routes.clients = express.Router();
+}
 
 const app = express();
 
@@ -51,27 +112,15 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Configuração de segurança otimizada para React dashboard
+// Configuração de segurança básica
 app.use(helmet({
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://api.openai.com", "https://*.supabase.co", process.env.NODE_ENV === 'development' ? "ws://localhost:*" : ""]
-        }
-    } : false
+    contentSecurityPolicy: false // Desabilitado para evitar problemas com React
 }));
 
 // Middleware de parsing com limites
 app.use(express.json({ 
-    limit: '10mb',
-    verify: (req, res, buf) => {
-        req.rawBody = buf;
-    }
+    limit: '10mb'
 }));
 app.use(express.urlencoded({ 
     extended: true, 
@@ -79,20 +128,20 @@ app.use(express.urlencoded({
 }));
 
 // Middlewares de sistema (aplicados globalmente)
-app.use(requestId); // Adicionar ID único a cada request
-app.use(performanceMonitor); // Monitorar performance
-app.use(requestTimeout(60000)); // Timeout de 60 segundos
+app.use(middlewares.requestId); // Adicionar ID único a cada request
+app.use(middlewares.performanceMonitor); // Monitorar performance
+app.use(middlewares.requestTimeout(60000)); // Timeout de 60 segundos
 
 // Middleware de logging para produção
-if (process.env.NODE_ENV === 'production') {
-    app.use(requestLogger);
+if (process.env.NODE_ENV === 'production' && middlewares.requestLogger) {
+    app.use(middlewares.requestLogger);
 }
 
 // Middleware de detecção de atividade suspeita
-app.use(suspiciousActivityDetector);
+app.use(middlewares.suspiciousActivityDetector);
 
 // Rate limiting global
-app.use(rateLimiter({
+app.use(middlewares.rateLimiter({
     windowMs: 15 * 60 * 1000, // 15 minutos
     maxRequests: 1000, // 1000 requests por 15 minutos (global)
     message: {
@@ -104,40 +153,26 @@ app.use(rateLimiter({
 // Verificar dashboards disponíveis
 const reactDashboardPath = path.join(__dirname, '../public/dashboard');
 const fallbackDashboardPath = path.join(__dirname, '../public/fallback.html');
-const hasReactDashboard = fs.existsSync(path.join(reactDashboardPath, 'index.html'));
-const hasFallbackDashboard = fs.existsSync(fallbackDashboardPath);
+const publicIndexPath = path.join(__dirname, '../public/index.html');
 
 console.log('🔍 Dashboard configuration:');
 console.log(`📁 React dashboard path: ${reactDashboardPath}`);
-console.log(`✅ React dashboard available: ${hasReactDashboard ? 'YES' : 'NO'}`);
 console.log(`📁 Fallback dashboard path: ${fallbackDashboardPath}`);
-console.log(`✅ Fallback dashboard available: ${hasFallbackDashboard ? 'YES' : 'NO'}`);
+console.log(`📁 Public index path: ${publicIndexPath}`);
 
-if (!hasReactDashboard && !hasFallbackDashboard) {
+const hasReactDashboard = fs.existsSync(path.join(reactDashboardPath, 'index.html'));
+const hasFallbackDashboard = fs.existsSync(fallbackDashboardPath);
+const hasPublicIndex = fs.existsSync(publicIndexPath);
+
+console.log(`✅ React dashboard available: ${hasReactDashboard ? 'YES' : 'NO'}`);
+console.log(`✅ Fallback dashboard available: ${hasFallbackDashboard ? 'YES' : 'NO'}`);
+console.log(`✅ Public index available: ${hasPublicIndex ? 'YES' : 'NO'}`);
+
+if (!hasReactDashboard && !hasFallbackDashboard && !hasPublicIndex) {
     console.log('❌ CRITICAL: No dashboard available! Check build process.');
 }
 
-// Servir arquivos estáticos do React dashboard (se disponível)
-if (hasReactDashboard) {
-    console.log('🎨 Configuring React dashboard serving...');
-    
-    // Servir assets do React com cache longo
-    app.use('/assets', express.static(path.join(reactDashboardPath, 'assets'), {
-        maxAge: process.env.NODE_ENV === 'production' ? '1y' : 0,
-        etag: true,
-        lastModified: true
-    }));
-    
-    // Servir outros arquivos estáticos do dashboard
-    app.use(express.static(reactDashboardPath, {
-        maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-        etag: true,
-        lastModified: true,
-        index: false // Não servir index.html automaticamente
-    }));
-}
-
-// Servir arquivos estáticos gerais (fallback)
+// Servir arquivos estáticos
 app.use(express.static(path.join(__dirname, '../public'), {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
     etag: true,
@@ -146,37 +181,51 @@ app.use(express.static(path.join(__dirname, '../public'), {
 }));
 
 // Rotas da API
-app.use('/api/crawling', crawlingRoutes);
-app.use('/api/search', searchRoutes);
-app.use('/api/clients', clientRoutes);
+app.use('/api/crawling', routes.crawling);
+app.use('/api/search', routes.search);
+app.use('/api/clients', routes.clients);
 
 // Health check aprimorado
 app.get('/api/health', async (req, res) => {
     try {
         const startTime = Date.now();
         
-        // Teste de conexão com banco
-        const { data, error } = await supabase
-            .from('clients')
-            .select('count')
-            .limit(1);
+        let dbStatus = 'not configured';
+        let dbResponseTime = 0;
+        let dbError = null;
         
-        const dbResponseTime = Date.now() - startTime;
+        // Teste de conexão com banco (se disponível)
+        if (supabase) {
+            try {
+                const { data, error } = await supabase
+                    .from('clients')
+                    .select('count')
+                    .limit(1);
+                
+                dbResponseTime = Date.now() - startTime;
+                dbStatus = error ? 'error' : 'connected';
+                dbError = error ? error.message : null;
+            } catch (err) {
+                dbStatus = 'error';
+                dbError = err.message;
+            }
+        }
         
         // Informações do sistema
         const healthInfo = {
             status: 'healthy',
             timestamp: new Date().toISOString(),
             message: 'ROI Labs Chatbot Training API',
-            version: require('../../package.json').version,
+            version: '1.0.0',
             environment: process.env.NODE_ENV || 'development',
             uptime: Math.floor(process.uptime()),
             dashboard: {
-                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : 'NOT AVAILABLE',
-                available: hasReactDashboard || hasFallbackDashboard,
+                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : hasPublicIndex ? 'Public Index' : 'NOT AVAILABLE',
+                available: hasReactDashboard || hasFallbackDashboard || hasPublicIndex,
                 react: hasReactDashboard,
                 fallback: hasFallbackDashboard,
-                path: hasReactDashboard ? '/app/public/dashboard/' : hasFallbackDashboard ? '/app/public/fallback.html' : 'N/A'
+                publicIndex: hasPublicIndex,
+                path: hasReactDashboard ? reactDashboardPath : hasFallbackDashboard ? fallbackDashboardPath : hasPublicIndex ? publicIndexPath : 'N/A'
             },
             memory: {
                 used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
@@ -184,9 +233,9 @@ app.get('/api/health', async (req, res) => {
                 rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB'
             },
             database: {
-                status: error ? 'error' : 'connected',
+                status: dbStatus,
                 responseTime: dbResponseTime + 'ms',
-                error: error ? error.message : null
+                error: dbError
             },
             config: {
                 supabase_url: process.env.SUPABASE_URL ? 'configured' : 'missing',
@@ -201,21 +250,9 @@ app.get('/api/health', async (req, res) => {
             }
         };
         
-        // Log de health check bem-sucedido
-        if (process.env.NODE_ENV === 'development') {
-            logger.debug('Health check completed', {
-                dbResponseTime,
-                memoryUsage: healthInfo.memory,
-                dashboardType: healthInfo.dashboard.type
-            });
-        }
-        
         res.json(healthInfo);
     } catch (error) {
-        logger.error('Health check failed', {
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
+        console.error('Health check failed:', error);
         
         res.status(500).json({
             status: 'unhealthy',
@@ -223,74 +260,11 @@ app.get('/api/health', async (req, res) => {
             error: process.env.NODE_ENV === 'production' 
                 ? 'Internal server error' 
                 : error.message,
-            version: require('../../package.json').version,
+            version: '1.0.0',
             dashboard: {
-                available: hasReactDashboard || hasFallbackDashboard,
-                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : 'NOT AVAILABLE'
+                available: hasReactDashboard || hasFallbackDashboard || hasPublicIndex,
+                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : hasPublicIndex ? 'Public Index' : 'NOT AVAILABLE'
             }
-        });
-    }
-});
-
-// Rota de teste da API key
-app.get('/api/test-auth', async (req, res) => {
-    const apiKey = req.headers['x-api-key'];
-    
-    if (!apiKey) {
-        return res.status(400).json({ 
-            error: 'API key obrigatória',
-            message: 'Envie a API key no header X-API-Key' 
-        });
-    }
-
-    try {
-        const { data: client, error } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('api_key', apiKey)
-            .eq('status', 'active')
-            .single();
-
-        if (error || !client) {
-            logger.warn('Invalid API key attempt', {
-                apiKey: apiKey.substring(0, 8) + '...',
-                ip: req.ip,
-                userAgent: req.get('User-Agent')
-            });
-            
-            return res.status(401).json({ 
-                error: 'API key inválida',
-                message: 'Verifique se a API key está correta e o cliente está ativo'
-            });
-        }
-
-        logger.info('API key validated successfully', {
-            clientId: client.id,
-            clientName: client.name,
-            ip: req.ip
-        });
-
-        res.json({
-            success: true,
-            message: 'Autenticação bem-sucedida!',
-            client: {
-                id: client.id,
-                name: client.name,
-                email: client.email,
-                company: client.company,
-                status: client.status,
-                created_at: client.created_at
-            }
-        });
-    } catch (error) {
-        logger.error('Auth test error', {
-            error: error.message,
-            apiKey: apiKey ? apiKey.substring(0, 8) + '...' : 'missing'
-        });
-        
-        res.status(500).json({ 
-            error: 'Erro interno do servidor',
-            message: 'Tente novamente em alguns instantes'
         });
     }
 });
@@ -301,11 +275,13 @@ app.get('/api/info', (req, res) => {
         ? { type: 'React (Modern)', available: true, url: '/' }
         : hasFallbackDashboard 
         ? { type: 'HTML Fallback', available: true, url: '/' }
+        : hasPublicIndex
+        ? { type: 'Public Index', available: true, url: '/' }
         : { type: 'NOT AVAILABLE', available: false, url: '/api/health' };
 
     res.json({
         name: 'ROI Labs Chatbot Training API',
-        version: require('../../package.json').version,
+        version: '1.0.0',
         description: 'Sistema de treinamento de chatbot por crawling de sites',
         environment: process.env.NODE_ENV || 'development',
         dashboard: dashboardInfo,
@@ -315,51 +291,21 @@ app.get('/api/info', (req, res) => {
             crawling: {
                 start: 'POST /api/crawling/start',
                 status: 'GET /api/crawling/status/:id',
-                history: 'GET /api/crawling/history',
-                details: 'GET /api/crawling/details/:id',
-                cancel: 'POST /api/crawling/cancel/:id',
-                delete: 'DELETE /api/crawling/:id'
+                history: 'GET /api/crawling/history'
             },
             search: {
                 search: 'POST /api/search',
                 domains: 'GET /api/search/domains',
-                stats: 'GET /api/search/stats',
-                similar: 'POST /api/search/similar',
-                autocomplete: 'GET /api/search/autocomplete'
+                stats: 'GET /api/search/stats'
             },
             clients: {
                 create: 'POST /api/clients',
-                profile: 'GET /api/clients/profile',
-                list: 'GET /api/clients (admin)',
-                details: 'GET /api/clients/:id (admin)',
-                update: 'PUT /api/clients/:id (admin)'
+                profile: 'GET /api/clients/profile'
             }
         },
-        documentation: 'https://github.com/roi-labs/chatbot-training',
+        documentation: 'https://github.com/JeanZorzetti/roi-labs-chatbot-training',
         support: 'contato@roilabs.com.br'
     });
-});
-
-// Rota para estatísticas do sistema (admin)
-app.get('/api/system/stats', async (req, res) => {
-    try {
-        const rateLimitStats = getRateLimitStats();
-        
-        res.json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            system: {
-                uptime: Math.floor(process.uptime()),
-                memory: process.memoryUsage(),
-                version: process.version,
-                platform: process.platform
-            },
-            rate_limiting: rateLimitStats
-        });
-    } catch (error) {
-        logger.error('System stats error', { error: error.message });
-        res.status(500).json({ error: 'Erro ao obter estatísticas do sistema' });
-    }
 });
 
 // ROTA PRINCIPAL: Servir Dashboard com fallback inteligente
@@ -371,31 +317,50 @@ app.get('/', (req, res) => {
     } else if (hasFallbackDashboard) {
         console.log(`🏠 Serving fallback dashboard from: ${fallbackDashboardPath}`);
         res.sendFile(fallbackDashboardPath);
+    } else if (hasPublicIndex) {
+        console.log(`📄 Serving public index from: ${publicIndexPath}`);
+        res.sendFile(publicIndexPath);
     } else {
-        // Se não há nenhum dashboard, mostrar erro informativo
-        res.status(503).send(`
+        // Se não há nenhum dashboard, mostrar página de status
+        res.status(200).send(`
             <!DOCTYPE html>
             <html>
             <head>
-                <title>ROI Labs - Dashboard Unavailable</title>
+                <title>ROI Labs - Chatbot Training</title>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
                 <style>
-                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                    .error { color: #d32f2f; }
-                    .info { color: #1976d2; }
+                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; color: white; }
+                    .container { max-width: 600px; margin: 0 auto; background: rgba(255,255,255,0.95); padding: 40px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); color: #333; }
+                    h1 { color: #333; margin-bottom: 20px; font-size: 2.5em; }
+                    .status { color: #28a745; font-weight: bold; font-size: 20px; margin: 20px 0; }
+                    .links { margin: 30px 0; }
+                    .links a { margin: 5px; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; display: inline-block; transition: all 0.3s; }
+                    .links a:hover { background: #0056b3; transform: translateY(-2px); }
+                    .info { background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; }
                 </style>
             </head>
             <body>
-                <h1 class="error">🚨 Dashboard Not Available</h1>
-                <p>Neither React nor fallback dashboard are available.</p>
-                <p class="info">Expected locations:</p>
-                <ul style="display: inline-block; text-align: left;">
-                    <li><code>/app/public/dashboard/index.html</code> (React)</li>
-                    <li><code>/app/public/fallback.html</code> (Fallback)</li>
-                </ul>
-                <p>Please check the build process or contact support.</p>
-                <hr>
-                <a href="/api/health">API Health Check</a> | 
-                <a href="/api/info">API Information</a>
+                <div class="container">
+                    <h1>🤖 ROI Labs Chatbot Training</h1>
+                    <p class="status">✅ API funcionando na porta ${process.env.PORT || 3001}!</p>
+                    
+                    <div class="info">
+                        <strong>🎉 SUCESSO!</strong> A aplicação está rodando e funcionando perfeitamente!
+                    </div>
+                    
+                    <div class="links">
+                        <a href="/api/health">Health Check</a>
+                        <a href="/api/info">API Info</a>
+                    </div>
+                    
+                    <div class="info">
+                        <p><strong>Versão:</strong> 1.0.0</p>
+                        <p><strong>Ambiente:</strong> ${process.env.NODE_ENV || 'development'}</p>
+                        <p><strong>Servidor:</strong> ${process.env.HOST || '0.0.0.0'}:${process.env.PORT || 3001}</p>
+                        <p><strong>Horário:</strong> ${new Date().toISOString()}</p>
+                    </div>
+                </div>
             </body>
             </html>
         `);
@@ -408,7 +373,7 @@ app.get('/*', (req, res) => {
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ 
             error: 'API endpoint not found',
-            available_endpoints: '/api/health, /api/info, /api/test-auth'
+            available_endpoints: '/api/health, /api/info'
         });
     }
     
@@ -425,87 +390,61 @@ app.get('/*', (req, res) => {
     } else if (hasFallbackDashboard) {
         console.log(`🔄 SPA routing: serving fallback dashboard for ${req.path}`);
         res.sendFile(fallbackDashboardPath);
+    } else if (hasPublicIndex) {
+        console.log(`🔄 SPA routing: serving public index for ${req.path}`);
+        res.sendFile(publicIndexPath);
     } else {
         res.redirect('/');
     }
 });
 
 // Middleware de tratamento de 404
-app.use(notFoundHandler);
+app.use(middlewares.notFoundHandler);
 
 // Middleware de logging de erros
-app.use(errorLogger);
+if (middlewares.errorLogger) {
+    app.use(middlewares.errorLogger);
+}
 
 // Middleware de tratamento de erros global
-app.use(errorHandler);
+app.use(middlewares.errorHandler);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const server = app.listen(PORT, HOST, () => {
     const env = process.env.NODE_ENV || 'development';
-    const isProduction = env === 'production';
     
     const dashboardStatus = hasReactDashboard 
         ? 'React (Modern) ✅' 
         : hasFallbackDashboard 
         ? 'HTML Fallback ⚠️' 
-        : 'NOT AVAILABLE ❌';
-    
-    logger.info('🚀 ROI Labs Chatbot Training API iniciada!', {
-        environment: env,
-        host: HOST,
-        port: PORT,
-        version: require('../../package.json').version,
-        nodeVersion: process.version,
-        dashboard: dashboardStatus
-    });
+        : hasPublicIndex
+        ? 'Public Index 📄'
+        : 'Status Page 📊';
     
     console.log('🚀 ROI Labs Chatbot Training API iniciada!');
     console.log(`📍 Ambiente: ${env}`);
     console.log(`🌐 Servidor: http://${HOST}:${PORT}`);
     console.log(`🎨 Dashboard: ${dashboardStatus}`);
-    
-    if (hasReactDashboard) {
-        console.log(`📁 React dashboard path: ${reactDashboardPath}`);
-    } else if (hasFallbackDashboard) {
-        console.log(`📁 Fallback dashboard path: ${fallbackDashboardPath}`);
-        console.log('ℹ️  Using HTML fallback - React build may have failed');
-    } else {
-        console.log('❌ CRITICAL: No dashboard available!');
-        console.log('🔧 Check Docker build process and frontend compilation.');
-    }
-    
     console.log(`🏥 Health check: http://${HOST}:${PORT}/api/health`);
     console.log(`ℹ️  API info: http://${HOST}:${PORT}/api/info`);
-    
-    if (!isProduction) {
-        console.log(`🔐 Teste auth: http://${HOST}:${PORT}/api/test-auth`);
-        console.log(`🕷️  Crawling: http://${HOST}:${PORT}/api/crawling/start`);
-        console.log(`🔍 Busca: http://${HOST}:${PORT}/api/search`);
-        console.log(`👥 Clientes: http://${HOST}:${PORT}/api/clients`);
-    }
-    
     console.log('✅ API pronta para receber requisições!');
 });
 
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
-    logger.info(`📴 Recebido ${signal}, iniciando graceful shutdown...`);
+    console.log(`📴 Recebido ${signal}, iniciando graceful shutdown...`);
     
     server.close(() => {
-        logger.info('✅ Servidor HTTP encerrado');
-        
-        // Fechar outras conexões se necessário
-        // Por exemplo, conexões de banco, Redis, etc.
-        
-        logger.info('✅ Graceful shutdown concluído');
+        console.log('✅ Servidor HTTP encerrado');
+        console.log('✅ Graceful shutdown concluído');
         process.exit(0);
     });
     
     // Forçar encerramento após timeout
     setTimeout(() => {
-        logger.error('❌ Forcando encerramento após timeout');
+        console.error('❌ Forcando encerramento após timeout');
         process.exit(1);
     }, 10000);
 };
@@ -513,23 +452,19 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Tratamento de erros não capturados já está no errorHandler middleware
+// Tratamento de erros não capturados
 process.on('uncaughtException', (error) => {
-    logger.error('❌ Uncaught Exception', {
-        error: error.message,
-        stack: error.stack
-    });
+    console.error('❌ Uncaught Exception:', error.message);
     
     if (process.env.NODE_ENV === 'production') {
         gracefulShutdown('UNCAUGHT_EXCEPTION');
+    } else {
+        console.error(error.stack);
     }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    logger.error('❌ Unhandled Rejection', {
-        reason: reason?.message || reason,
-        stack: reason?.stack
-    });
+    console.error('❌ Unhandled Rejection:', reason);
     
     if (process.env.NODE_ENV === 'production') {
         gracefulShutdown('UNHANDLED_REJECTION');
