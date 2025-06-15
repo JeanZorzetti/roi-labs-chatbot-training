@@ -9,11 +9,18 @@ interface ApiStore {
   clearAuth: () => void
 }
 
+// Função para detectar ambiente de produção
+const isProduction = () => {
+  return import.meta.env?.PROD || 
+         (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
+         false
+}
+
 export const useApiStore = create<ApiStore>()(
   persist(
     (set) => ({
       apiKey: '',
-      baseUrl: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000',
+      baseUrl: isProduction() ? '' : 'http://localhost:3000',
       setApiKey: (apiKey) => set({ apiKey }),
       setBaseUrl: (baseUrl) => set({ baseUrl }),
       clearAuth: () => set({ apiKey: '', baseUrl: '' }),
