@@ -1,9 +1,9 @@
 {
   "name": "roi-labs-dashboard",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Modern React dashboard for ROI Labs Chatbot Training",
   "private": true,
-  "buildTimestamp": "2025-06-15T05:24:00Z",
+  "buildTimestamp": "2025-06-15T05:41:00Z",
   "dependencies": {
     "@headlessui/react": "^2.1.10",
     "@heroicons/react": "^2.1.5",
@@ -36,9 +36,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "echo 'Building ROI Labs Dashboard v1.0.1' && tsc && vite build",
+    "build": "echo '🏗️  Building ROI Labs Dashboard v1.0.2...' && tsc --noEmit && vite build && echo '✅ Build completed successfully!' && ls -la dist/",
     "preview": "vite preview",
-    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test:build": "npm run build && test -f dist/index.html && echo '✅ Build verification passed' || echo '❌ Build verification failed'"
   },
   "eslintConfig": {
     "extends": [
