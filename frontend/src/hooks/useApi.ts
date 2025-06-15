@@ -51,3 +51,8 @@ export function useApi<T = any>(
 
   return { data, loading, error, execute }
 }
+
+// Hook específico para health check
+export function useHealth() {
+  return useApi('/api/health', 'GET')
+}

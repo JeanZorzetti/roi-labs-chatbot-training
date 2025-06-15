@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useThemeStore } from '../stores/themeStore'
-import { PlayIcon, StopIcon } from '@heroicons/react/24/outline'
+import { PlayIcon } from '@heroicons/react/24/outline'
 
 interface CrawlingFormProps {
   onSubmit: (data: { url: string; maxPages: number; depth: number }) => void

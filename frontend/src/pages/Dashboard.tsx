@@ -1,4 +1,4 @@
-import React from 'react'
+import { useState } from 'react'
 import { useThemeStore } from '../stores/themeStore'
 import SystemMetrics from '../components/SystemMetrics'
 import SearchBox from '../components/SearchBox'
@@ -6,6 +6,8 @@ import CrawlingStatus from '../components/CrawlingStatus'
 
 const Dashboard = () => {
   const { isDark } = useThemeStore()
+  const [jobs] = useState([])
+  const [isLoading] = useState(false)
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -27,7 +29,7 @@ const Dashboard = () => {
         </div>
         
         <div className="grid grid-cols-1 gap-6">
-          <CrawlingStatus />
+          <CrawlingStatus jobs={jobs} isLoading={isLoading} />
         </div>
       </div>
     </div>

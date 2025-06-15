@@ -11,12 +11,16 @@ interface ApiStore {
 
 // Função para detectar ambiente de produção
 const isProduction = () => {
-  return import.meta.env?.PROD || 
-         (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
-         false
+  try {
+    return import.meta?.env?.PROD || 
+           (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
+           false
+  } catch {
+    return false
+  }
 }
 
-export const useApiStore = create<ApiStore>()(
+export const useApiStore = create<ApiStore>()(  
   persist(
     (set) => ({
       apiKey: '',
