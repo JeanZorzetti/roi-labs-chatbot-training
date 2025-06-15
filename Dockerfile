@@ -7,7 +7,9 @@ WORKDIR /app/frontend
 
 # Copy frontend package files
 COPY frontend/package*.json ./
-RUN npm ci --only=production
+
+# Install dependencies (use npm install if no lock file exists)
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # Copy frontend source
 COPY frontend/ ./
@@ -21,7 +23,9 @@ WORKDIR /app
 
 # Copy backend package files
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Install dependencies (use npm install if no lock file exists)
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 # Copy backend source
 COPY . ./
