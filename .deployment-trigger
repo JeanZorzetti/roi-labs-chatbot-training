@@ -1,28 +1,30 @@
 # Deployment Trigger
 
 ## Latest Changes
-- Fix: Configure production API base URL to connect frontend with backend
-- Fix: Update apiStore to properly read environment variables and default API settings  
-- Add: Create API service to handle all backend communication with proper error handling
-- Fix: Update Crawling page to use real API calls instead of simulation and add proper error handling
+- Fix: TypeScript errors resolved for frontend-backend integration
+- Add: Data mapper to convert API types to frontend component types
+- Fix: Update Crawling page to use data mapper for type compatibility  
+- Fix: Update JobsList component to accept action handlers and add proper Job interface
+- Fix: Update JobsTable component to accept action handlers and add actions column
+- Fix: Restore action handlers to JobsList and JobsTable components in Crawling page
 
 ## Deployment Timestamp
-2025-06-15T19:21:30Z
+2025-06-15T19:30:45Z
 
 ## Changes Summary
-Fixed frontend-backend integration by:
-1. Setting correct API base URL (https://bot.roilabs.com.br)
-2. Using environment variables properly 
-3. Creating real API service with error handling
-4. Updating Crawling page to make actual API calls
+Fixed TypeScript compilation errors by:
+1. Creating dataMapper.ts to convert CrawlingJob to Job types
+2. Updated components to accept proper interfaces
+3. Added action handlers (onRefresh, onCancel, onDelete) to components
+4. Ensured type compatibility between API responses and frontend components
 
 ## Expected Result
-✅ Frontend will now properly connect to backend API
-✅ Crawling functionality will work with real data
-✅ Error handling and user feedback implemented
-✅ Production environment variables configured
+✅ Frontend will compile without TypeScript errors
+✅ Real API integration working properly
+✅ Crawling functionality with proper data mapping
+✅ User actions (cancel, delete, refresh) implemented
 
 ## Notes
-This deployment fixes the "Crawling não funcionou" issue by properly integrating frontend with the already-working backend API.
+This deployment resolves the TypeScript compilation failure and completes the frontend-backend integration.
 
-Trigger ID: frontend-api-integration-fix-20250615
+Trigger ID: typescript-fix-and-complete-integration-20250615
