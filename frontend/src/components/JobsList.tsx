@@ -1,6 +1,6 @@
 import React from 'react'
 import { useThemeStore } from '../stores/themeStore'
-import { ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 
 interface Job {
   id: string
@@ -9,13 +9,18 @@ interface Job {
   progress: number
   createdAt: string
   completedAt?: string
+  pagesFound: number
+  pagesCrawled: number
 }
 
 interface JobsListProps {
   jobs: Job[]
+  onRefresh?: () => void
+  onCancel?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
-const JobsList: React.FC<JobsListProps> = ({ jobs }) => {
+const JobsList: React.FC<JobsListProps> = ({ jobs, onRefresh, onCancel, onDelete }) => {
   const { isDark } = useThemeStore()
 
   const getStatusIcon = (status: Job['status']) => {
@@ -50,7 +55,18 @@ const JobsList: React.FC<JobsListProps> = ({ jobs }) => {
 
   return (
     <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg p-6`}>
-      <h2 className="text-xl font-semibold mb-4">Jobs Recentes</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Jobs Recentes</h2>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className={`p-2 rounded-lg hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} transition-colors`}
+            title="Atualizar"
+          >
+            <ArrowPathIcon className="h-5 w-5" />
+          </button>
+        )}
+      </div>
       
       {jobs.length === 0 ? (
         <p className="text-gray-500 text-center py-8">
@@ -97,6 +113,28 @@ const JobsList: React.FC<JobsListProps> = ({ jobs }) => {
                   )}
                 </div>
               </div>
+              
+              {/* Botões de ação */}
+              {(onCancel || onDelete) && (
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex gap-2">
+                  {onCancel && job.status === 'running' && (
+                    <button
+                      onClick={() => onCancel(job.id)}
+                      className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                  {onDelete && (job.status === 'completed' || job.status === 'failed') && (
+                    <button
+                      onClick={() => onDelete(job.id)}
+                      className="px-3 py-1 text-sm bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                    >
+                      Deletar
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
