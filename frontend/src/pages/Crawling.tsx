@@ -4,8 +4,8 @@ import { CogIcon } from '@heroicons/react/24/outline'
 import CrawlingForm from '../components/CrawlingForm'
 import JobsList from '../components/JobsList'
 import JobsTable from '../components/JobsTable'
-import { apiService, type CrawlingJob } from '../utils/apiService'
-import { convertCrawlingJobsToJobs, type Job } from '../types/crawling'
+import { apiService } from '../utils/apiService'
+import { convertCrawlingJobsToJobs, type CrawlingJob, type Job } from '../types/crawling'
 
 const Crawling = () => {
   const { isDark } = useThemeStore()
