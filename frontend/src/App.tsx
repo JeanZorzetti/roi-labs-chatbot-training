@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { useThemeStore } from './stores/themeStore'
 import Layout from './components/Layout'
@@ -12,7 +12,7 @@ import { cn } from './utils/cn'
 function App() {
   const { isDark } = useThemeStore()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark')
     } else {
