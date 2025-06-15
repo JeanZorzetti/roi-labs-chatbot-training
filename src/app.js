@@ -172,7 +172,22 @@ if (!hasReactDashboard && !hasFallbackDashboard && !hasPublicIndex) {
     console.log('❌ CRITICAL: No dashboard available! Check build process.');
 }
 
-// Servir arquivos estáticos
+// IMPORTANT: Servir assets do React dashboard primeiro (antes das rotas da API)
+if (hasReactDashboard) {
+    // Servir assets do React dashboard com cache longo
+    app.use('/assets', express.static(path.join(reactDashboardPath, 'assets'), {
+        maxAge: process.env.NODE_ENV === 'production' ? '1y' : 0,
+        etag: true,
+        lastModified: true,
+        setHeaders: (res, filePath) => {
+            console.log(`📦 Serving asset: ${filePath}`);
+        }
+    }));
+    
+    console.log('✅ React dashboard assets configured at /assets');
+}
+
+// Servir arquivos estáticos gerais
 app.use(express.static(path.join(__dirname, '../public'), {
     maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
     etag: true,
@@ -225,7 +240,8 @@ app.get('/api/health', async (req, res) => {
                 react: hasReactDashboard,
                 fallback: hasFallbackDashboard,
                 publicIndex: hasPublicIndex,
-                path: hasReactDashboard ? reactDashboardPath : hasFallbackDashboard ? fallbackDashboardPath : hasPublicIndex ? publicIndexPath : 'N/A'
+                path: hasReactDashboard ? reactDashboardPath : hasFallbackDashboard ? fallbackDashboardPath : hasPublicIndex ? publicIndexPath : 'N/A',
+                assetsConfigured: hasReactDashboard
             },
             memory: {
                 used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
@@ -377,8 +393,8 @@ app.get('/*', (req, res) => {
         });
     }
     
-    // Se for um arquivo estático, não interceptar
-    if (req.path.includes('.')) {
+    // Se for um arquivo estático específico (não assets), não interceptar
+    if (req.path.includes('.') && !req.path.startsWith('/assets/')) {
         return res.status(404).send('File not found');
     }
     
@@ -427,6 +443,11 @@ const server = app.listen(PORT, HOST, () => {
     console.log(`📍 Ambiente: ${env}`);
     console.log(`🌐 Servidor: http://${HOST}:${PORT}`);
     console.log(`🎨 Dashboard: ${dashboardStatus}`);
+    
+    if (hasReactDashboard) {
+        console.log(`📦 Assets configured at: /assets -> ${path.join(reactDashboardPath, 'assets')}`);
+    }
+    
     console.log(`🏥 Health check: http://${HOST}:${PORT}/api/health`);
     console.log(`ℹ️  API info: http://${HOST}:${PORT}/api/info`);
     console.log('✅ API pronta para receber requisições!');
