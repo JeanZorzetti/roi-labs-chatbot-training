@@ -1,86 +1,28 @@
-## CRITICAL FRONTEND FIX - ROI Labs Chatbot Training
+# Deployment Trigger
 
-**URGENTE - Deploy Status:** 2025-06-15 05:57:00 UTC
-**Issue ID:** CRITICAL_FRONTEND_MISSING_20250615_055700
+## Latest Changes
+- Fix: Configure production API base URL to connect frontend with backend
+- Fix: Update apiStore to properly read environment variables and default API settings  
+- Add: Create API service to handle all backend communication with proper error handling
+- Fix: Update Crawling page to use real API calls instead of simulation and add proper error handling
 
----
+## Deployment Timestamp
+2025-06-15T19:21:30Z
 
-## 🚨 PROBLEMA IDENTIFICADO:
+## Changes Summary
+Fixed frontend-backend integration by:
+1. Setting correct API base URL (https://bot.roilabs.com.br)
+2. Using environment variables properly 
+3. Creating real API service with error handling
+4. Updating Crawling page to make actual API calls
 
-### **ROOT CAUSE**: 
-1. ❌ **Arquivo `public/index.html` VAZIO** estava interferindo com o dashboard
-2. ❌ **Branch "master" existe** e pode estar sendo usado pelo Easypanel
-3. ❌ **Cache do Docker/Easypanel** pode estar servindo versão antiga
+## Expected Result
+✅ Frontend will now properly connect to backend API
+✅ Crawling functionality will work with real data
+✅ Error handling and user feedback implemented
+✅ Production environment variables configured
 
-### **SOLUÇÕES APLICADAS**:
+## Notes
+This deployment fixes the "Crawling não funcionou" issue by properly integrating frontend with the already-working backend API.
 
-✅ **1. Corrigido `public/index.html`**
-- ❌ **ANTES**: Arquivo vazio (0 bytes) que causava interferência
-- ✅ **AGORA**: Página de redirecionamento adequada para dashboard
-
-✅ **2. Sistema de Dashboard Inteligente Implementado**
-- ✅ **React Dashboard**: Interface moderna (prioridade 1)
-- ✅ **HTML Fallback**: Dashboard funcional (prioridade 2) 
-- ✅ **Express Logic**: Seleção automática do melhor disponível
-
-✅ **3. Build Process Otimizado**
-- ✅ **Multi-stage Dockerfile** com debug completo
-- ✅ **Frontend verification** em cada etapa
-- ✅ **Health check avançado** com detecção de dashboard
-
----
-
-## 🎯 **PRÓXIMOS PASSOS OBRIGATÓRIOS:**
-
-### **No Easypanel:**
-1. **Verificar Branch**: Confirme que está usando `main` (não `master`)
-2. **Force Rebuild**: Clear cache e force rebuild completo
-3. **Check Port**: Verifique se porta 3001 está configurada
-4. **Environment**: Confirme que variáveis estão corretas
-
-### **Debugging:**
-- **Health Check**: https://bot.roilabs.com.br/api/health
-- **API Info**: https://bot.roilabs.com.br/api/info
-- **Expected Result**: Dashboard React OU HTML Fallback (nunca página vazia)
-
----
-
-## 📊 **CONFIGURAÇÃO FINAL:**
-
-```yaml
-# CONFIGURAÇÃO CORRETA EASYPANEL:
-Source:
-  Type: GitHub
-  Repository: JeanZorzetti/roi-labs-chatbot-training  
-  Branch: main  # ← IMPORTANTE: Deve ser "main", não "master"
-  
-Build:
-  Type: Dockerfile
-  Port: 3001  # ← IMPORTANTE: Porta correta
-  
-Environment:
-  PORT: 3001
-  NODE_ENV: production
-  # + outras variáveis
-```
-
----
-
-## 🔄 **DEPLOY TRIGGERS:**
-
-- **FORCE_CACHE_BREAK_20250615_052800** - Initial rebuild
-- **FRONTEND_FIX_20250615_054100** - Enhanced Dockerfile  
-- **COMPLETE_FRONTEND_SOLUTION_20250615_054400** - Smart dashboard
-- **CRITICAL_FRONTEND_MISSING_20250615_055700** - Index.html fix
-
----
-
-## ✅ **GARANTIA:**
-
-Este deployment **GARANTE** que:
-1. ✅ **Sempre haverá um frontend funcional**
-2. ✅ **React Dashboard** (preferencial) OU **HTML Fallback** (backup)
-3. ✅ **Nunca mais página vazia ou erro**
-4. ✅ **Health check detalhado** para debugging
-
-**Status Final**: 🚀 **PRONTO PARA PRODUÇÃO**
+Trigger ID: frontend-api-integration-fix-20250615
