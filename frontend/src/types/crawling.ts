@@ -5,6 +5,7 @@ export interface CrawlingJob {
   status: 'pending' | 'running' | 'completed' | 'failed';
   createdAt?: string;
   updatedAt?: string;
+  completedAt?: string;
   url?: string;
   domain?: string;
   title?: string;
@@ -17,6 +18,7 @@ export interface Job {
   progress: number;
   status: 'pending' | 'running' | 'completed' | 'failed';
   createdAt: string;
+  completedAt?: string;
   pagesFound?: number;
   pagesCrawled?: number;
   domain?: string;
@@ -32,6 +34,7 @@ export function convertCrawlingJobToJob(crawlingJob: CrawlingJob): Job {
     progress: getProgressFromStatus(crawlingJob.status),
     status: crawlingJob.status,
     createdAt: crawlingJob.createdAt || new Date().toISOString(),
+    completedAt: crawlingJob.completedAt,
     pagesFound: 0, // Valor padrão se não fornecido
     pagesCrawled: 0, // Valor padrão se não fornecido
     domain: crawlingJob.domain,
