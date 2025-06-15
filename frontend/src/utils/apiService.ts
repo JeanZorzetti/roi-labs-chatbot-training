@@ -80,9 +80,9 @@ class ApiService {
 
   async getCrawlingHistory(): Promise<CrawlingHistoryResponse> {
     try {
-      const response = await fetch(`${this.getBaseUrl()}/api/crawling/history`, {
-        method: 'GET',
-        headers: this.getHeaders()
+      // Usar rota temporária sem autenticação
+      const response = await fetch(`${this.getBaseUrl()}/api/crawling/jobs`, {
+        method: 'GET'
       })
 
       const result = await response.json()
