@@ -101,20 +101,23 @@ app.use(rateLimiter({
     }
 }));
 
-// Verificar se existe o dashboard React buildado
+// Verificar dashboards disponíveis
 const reactDashboardPath = path.join(__dirname, '../public/dashboard');
+const fallbackDashboardPath = path.join(__dirname, '../public/fallback.html');
 const hasReactDashboard = fs.existsSync(path.join(reactDashboardPath, 'index.html'));
+const hasFallbackDashboard = fs.existsSync(fallbackDashboardPath);
 
 console.log('🔍 Dashboard configuration:');
 console.log(`📁 React dashboard path: ${reactDashboardPath}`);
 console.log(`✅ React dashboard available: ${hasReactDashboard ? 'YES' : 'NO'}`);
+console.log(`📁 Fallback dashboard path: ${fallbackDashboardPath}`);
+console.log(`✅ Fallback dashboard available: ${hasFallbackDashboard ? 'YES' : 'NO'}`);
 
-if (!hasReactDashboard) {
-    console.log('❌ CRITICAL: React dashboard not found! Check build process.');
-    console.log('🔧 Expected location: /app/public/dashboard/index.html');
+if (!hasReactDashboard && !hasFallbackDashboard) {
+    console.log('❌ CRITICAL: No dashboard available! Check build process.');
 }
 
-// Servir arquivos estáticos do React dashboard
+// Servir arquivos estáticos do React dashboard (se disponível)
 if (hasReactDashboard) {
     console.log('🎨 Configuring React dashboard serving...');
     
@@ -169,9 +172,11 @@ app.get('/api/health', async (req, res) => {
             environment: process.env.NODE_ENV || 'development',
             uptime: Math.floor(process.uptime()),
             dashboard: {
-                type: hasReactDashboard ? 'React (Modern)' : 'NOT AVAILABLE',
-                available: hasReactDashboard,
-                path: hasReactDashboard ? '/app/public/dashboard/' : 'N/A'
+                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : 'NOT AVAILABLE',
+                available: hasReactDashboard || hasFallbackDashboard,
+                react: hasReactDashboard,
+                fallback: hasFallbackDashboard,
+                path: hasReactDashboard ? '/app/public/dashboard/' : hasFallbackDashboard ? '/app/public/fallback.html' : 'N/A'
             },
             memory: {
                 used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
@@ -201,7 +206,7 @@ app.get('/api/health', async (req, res) => {
             logger.debug('Health check completed', {
                 dbResponseTime,
                 memoryUsage: healthInfo.memory,
-                dashboardAvailable: hasReactDashboard
+                dashboardType: healthInfo.dashboard.type
             });
         }
         
@@ -220,7 +225,8 @@ app.get('/api/health', async (req, res) => {
                 : error.message,
             version: require('../../package.json').version,
             dashboard: {
-                available: hasReactDashboard
+                available: hasReactDashboard || hasFallbackDashboard,
+                type: hasReactDashboard ? 'React (Modern)' : hasFallbackDashboard ? 'HTML Fallback' : 'NOT AVAILABLE'
             }
         });
     }
@@ -291,16 +297,18 @@ app.get('/api/test-auth', async (req, res) => {
 
 // Rota de informações da API
 app.get('/api/info', (req, res) => {
+    const dashboardInfo = hasReactDashboard 
+        ? { type: 'React (Modern)', available: true, url: '/' }
+        : hasFallbackDashboard 
+        ? { type: 'HTML Fallback', available: true, url: '/' }
+        : { type: 'NOT AVAILABLE', available: false, url: '/api/health' };
+
     res.json({
         name: 'ROI Labs Chatbot Training API',
         version: require('../../package.json').version,
         description: 'Sistema de treinamento de chatbot por crawling de sites',
         environment: process.env.NODE_ENV || 'development',
-        dashboard: {
-            type: hasReactDashboard ? 'React (Modern)' : 'NOT AVAILABLE',
-            available: hasReactDashboard,
-            url: hasReactDashboard ? '/' : '/api/health'
-        },
+        dashboard: dashboardInfo,
         endpoints: {
             health: '/api/health',
             auth: '/api/test-auth',
@@ -354,14 +362,17 @@ app.get('/api/system/stats', async (req, res) => {
     }
 });
 
-// ROTA PRINCIPAL: Servir React Dashboard ou mensagem de erro
+// ROTA PRINCIPAL: Servir Dashboard com fallback inteligente
 app.get('/', (req, res) => {
     if (hasReactDashboard) {
         const reactIndexPath = path.join(reactDashboardPath, 'index.html');
         console.log(`🎨 Serving React dashboard from: ${reactIndexPath}`);
         res.sendFile(reactIndexPath);
+    } else if (hasFallbackDashboard) {
+        console.log(`🏠 Serving fallback dashboard from: ${fallbackDashboardPath}`);
+        res.sendFile(fallbackDashboardPath);
     } else {
-        // Se não há React dashboard, mostrar erro informativo
+        // Se não há nenhum dashboard, mostrar erro informativo
         res.status(503).send(`
             <!DOCTYPE html>
             <html>
@@ -375,8 +386,12 @@ app.get('/', (req, res) => {
             </head>
             <body>
                 <h1 class="error">🚨 Dashboard Not Available</h1>
-                <p>The React dashboard is not built or not found.</p>
-                <p class="info">Expected location: <code>/app/public/dashboard/index.html</code></p>
+                <p>Neither React nor fallback dashboard are available.</p>
+                <p class="info">Expected locations:</p>
+                <ul style="display: inline-block; text-align: left;">
+                    <li><code>/app/public/dashboard/index.html</code> (React)</li>
+                    <li><code>/app/public/fallback.html</code> (Fallback)</li>
+                </ul>
                 <p>Please check the build process or contact support.</p>
                 <hr>
                 <a href="/api/health">API Health Check</a> | 
@@ -387,7 +402,7 @@ app.get('/', (req, res) => {
     }
 });
 
-// Rota de fallback para React Router (SPA)
+// Rota de fallback para React Router (SPA) ou fallback dashboard
 app.get('/*', (req, res) => {
     // Se for uma requisição de API, não interceptar
     if (req.path.startsWith('/api/')) {
@@ -402,11 +417,14 @@ app.get('/*', (req, res) => {
         return res.status(404).send('File not found');
     }
     
-    // Para outras rotas, servir o React app (SPA routing)
+    // Para outras rotas, servir o dashboard disponível (SPA routing)
     if (hasReactDashboard) {
         const reactIndexPath = path.join(reactDashboardPath, 'index.html');
         console.log(`🔄 SPA routing: serving React dashboard for ${req.path}`);
         res.sendFile(reactIndexPath);
+    } else if (hasFallbackDashboard) {
+        console.log(`🔄 SPA routing: serving fallback dashboard for ${req.path}`);
+        res.sendFile(fallbackDashboardPath);
     } else {
         res.redirect('/');
     }
@@ -428,24 +446,33 @@ const server = app.listen(PORT, HOST, () => {
     const env = process.env.NODE_ENV || 'development';
     const isProduction = env === 'production';
     
+    const dashboardStatus = hasReactDashboard 
+        ? 'React (Modern) ✅' 
+        : hasFallbackDashboard 
+        ? 'HTML Fallback ⚠️' 
+        : 'NOT AVAILABLE ❌';
+    
     logger.info('🚀 ROI Labs Chatbot Training API iniciada!', {
         environment: env,
         host: HOST,
         port: PORT,
         version: require('../../package.json').version,
         nodeVersion: process.version,
-        dashboard: hasReactDashboard ? 'React (Modern)' : 'NOT AVAILABLE'
+        dashboard: dashboardStatus
     });
     
     console.log('🚀 ROI Labs Chatbot Training API iniciada!');
     console.log(`📍 Ambiente: ${env}`);
     console.log(`🌐 Servidor: http://${HOST}:${PORT}`);
-    console.log(`🎨 Dashboard: ${hasReactDashboard ? 'React (Modern) ✅' : 'NOT AVAILABLE ❌'}`);
+    console.log(`🎨 Dashboard: ${dashboardStatus}`);
     
     if (hasReactDashboard) {
-        console.log(`📁 Dashboard path: ${reactDashboardPath}`);
+        console.log(`📁 React dashboard path: ${reactDashboardPath}`);
+    } else if (hasFallbackDashboard) {
+        console.log(`📁 Fallback dashboard path: ${fallbackDashboardPath}`);
+        console.log('ℹ️  Using HTML fallback - React build may have failed');
     } else {
-        console.log('❌ CRITICAL: React dashboard not found!');
+        console.log('❌ CRITICAL: No dashboard available!');
         console.log('🔧 Check Docker build process and frontend compilation.');
     }
     
