@@ -1,5 +1,6 @@
 import React from 'react'
 import { useThemeStore } from '../stores/themeStore'
+import { ArrowPathIcon } from '@heroicons/react/24/outline'
 
 interface Job {
   id: string
@@ -14,9 +15,12 @@ interface Job {
 
 interface JobsTableProps {
   jobs: Job[]
+  onRefresh?: () => void
+  onCancel?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
-const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
+const JobsTable: React.FC<JobsTableProps> = ({ jobs, onRefresh, onCancel, onDelete }) => {
   const { isDark } = useThemeStore()
 
   const getStatusBadge = (status: Job['status']) => {
@@ -53,7 +57,18 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
 
   return (
     <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg p-6`}>
-      <h2 className="text-xl font-semibold mb-4">Histórico Detalhado</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Histórico Detalhado</h2>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className={`p-2 rounded-lg hover:${isDark ? 'bg-gray-700' : 'bg-gray-100'} transition-colors`}
+            title="Atualizar"
+          >
+            <ArrowPathIcon className="h-5 w-5" />
+          </button>
+        )}
+      </div>
       
       {jobs.length === 0 ? (
         <p className="text-gray-500 text-center py-8">
@@ -70,6 +85,9 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
                 <th className="text-left py-3 px-4 font-medium">Páginas</th>
                 <th className="text-left py-3 px-4 font-medium">Criado</th>
                 <th className="text-left py-3 px-4 font-medium">Concluído</th>
+                {(onCancel || onDelete) && (
+                  <th className="text-left py-3 px-4 font-medium">Ações</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -125,6 +143,28 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs }) => {
                       }
                     </span>
                   </td>
+                  {(onCancel || onDelete) && (
+                    <td className="py-3 px-4">
+                      <div className="flex gap-2">
+                        {onCancel && job.status === 'running' && (
+                          <button
+                            onClick={() => onCancel(job.id)}
+                            className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        )}
+                        {onDelete && (job.status === 'completed' || job.status === 'failed') && (
+                          <button
+                            onClick={() => onDelete(job.id)}
+                            className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors"
+                          >
+                            Deletar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
