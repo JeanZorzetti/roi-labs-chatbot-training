@@ -5,7 +5,7 @@ import CrawlingForm from '../components/CrawlingForm'
 import JobsList from '../components/JobsList'
 import JobsTable from '../components/JobsTable'
 import { apiService, type CrawlingJob } from '../utils/apiService'
-import { mapCrawlingJobsToJobs, type Job } from '../utils/dataMapper'
+import { convertCrawlingJobsToJobs, type Job } from '../types/crawling'
 
 const Crawling = () => {
   const { isDark } = useThemeStore()
@@ -21,7 +21,7 @@ const Crawling = () => {
 
   // Atualizar jobs mapeados quando crawlingJobs mudar
   useEffect(() => {
-    const mappedJobs = mapCrawlingJobsToJobs(crawlingJobs)
+    const mappedJobs = convertCrawlingJobsToJobs(crawlingJobs)
     setJobs(mappedJobs)
   }, [crawlingJobs])
 
