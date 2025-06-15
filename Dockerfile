@@ -1,82 +1,87 @@
-# Dockerfile otimizado para ROI Labs Chatbot Training
-# Multi-stage build para reduzir tamanho da imagem
+# Multi-stage Dockerfile for ROI Labs Chatbot Training
+# Optimized for production with React frontend build
 
-# Stage 1: Build dependencies
-FROM node:18-alpine AS builder
+# Stage 1: Build Frontend
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app/frontend
 
-# Instalar dependências do sistema para Puppeteer
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    python3 \
-    make \
-    g++
+# Copy frontend package files
+COPY frontend/package*.json ./
+RUN npm ci --only=production
 
-# Configurar Puppeteer para usar Chromium instalado
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+# Copy frontend source
+COPY frontend/ ./
 
+# Build frontend for production
+RUN npm run build
+
+# Stage 2: Build Backend
+FROM node:18-alpine AS backend-builder
 WORKDIR /app
 
-# Copiar package files
+# Copy backend package files
 COPY package*.json ./
+RUN npm ci --only=production
 
-# Instalar dependências
-RUN npm ci --only=production && npm cache clean --force
+# Copy backend source
+COPY . ./
 
-# Stage 2: Production image
+# Remove frontend directory (already built)
+RUN rm -rf frontend
+
+# Stage 3: Production Image
 FROM node:18-alpine AS production
 
-# Instalar dependências do sistema necessárias
+# Set environment
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3000
+
+# Create app user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Install system dependencies
 RUN apk add --no-cache \
     chromium \
     nss \
     freetype \
+    freetype-dev \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    dumb-init
+    curl \
+    && rm -rf /var/cache/apk/*
 
-# Criar usuário não-root
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S chatbot -u 1001
+# Set Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
-# Configurar Puppeteer
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
+# Create app directory
 WORKDIR /app
 
-# Copiar dependências do stage de build
-COPY --from=builder --chown=chatbot:nodejs /app/node_modules ./node_modules
+# Copy backend from builder stage
+COPY --from=backend-builder --chown=nextjs:nodejs /app ./
 
-# Copiar código da aplicação
-COPY --chown=chatbot:nodejs . .
+# Copy built frontend to public directory
+COPY --from=frontend-builder --chown=nextjs:nodejs /app/frontend/dist ./public/dashboard
 
-# Criar diretório para logs
-RUN mkdir -p /app/logs && chown chatbot:nodejs /app/logs
+# Create necessary directories
+RUN mkdir -p logs uploads && \
+    chown -R nextjs:nodejs logs uploads
 
-# Configurar variáveis de ambiente
-ENV NODE_ENV=production \
-    PORT=3000 \
-    HOST=0.0.0.0
+# Copy health check script
+COPY --chown=nextjs:nodejs healthcheck.js ./
 
-# Expor porta
+# Expose port
 EXPOSE 3000
 
-# Mudar para usuário não-root
-USER chatbot
+# Switch to non-root user
+USER nextjs
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD node healthcheck.js
 
-# Usar dumb-init para melhor manejo de sinais
-ENTRYPOINT ["dumb-init", "--"]
-
-# Comando para iniciar a aplicação
-CMD ["node", "server.js"]
+# Start application
+CMD ["npm", "run", "start:prod"]
