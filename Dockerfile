@@ -35,7 +35,7 @@ FROM node:18-alpine AS production
 # Set environment
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=3001
 
 # Create app user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -73,15 +73,15 @@ RUN mkdir -p logs uploads && \
 # Copy health check script
 COPY --chown=nextjs:nodejs healthcheck.js ./
 
-# Expose port
-EXPOSE 3000
+# Expose port 3001 (matching your configuration)
+EXPOSE 3001
 
 # Switch to non-root user
 USER nextjs
 
-# Health check
+# Health check (using port 3001)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node healthcheck.js
+    CMD curl -f http://localhost:3001/api/health || exit 1
 
 # Start application
 CMD ["npm", "run", "start:prod"]
