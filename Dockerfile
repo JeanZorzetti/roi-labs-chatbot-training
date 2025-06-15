@@ -8,8 +8,8 @@ WORKDIR /app/frontend
 # Copy frontend package files
 COPY frontend/package*.json ./
 
-# Install dependencies (use npm install if no lock file exists)
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# Install ALL dependencies (including devDependencies for build tools like Vite)
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy frontend source
 COPY frontend/ ./
