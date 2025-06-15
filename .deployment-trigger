@@ -1,0 +1,4 @@
+deploy-trigger-fix-npm-ci-error-$(date +%Y%m%d-%H%M%S)
+# Este arquivo força um novo build no Easypanel
+# O Dockerfile já foi corrigido para usar npm install quando package-lock.json não existir
+# Build timestamp: 2025-06-15T01:35:00Z
