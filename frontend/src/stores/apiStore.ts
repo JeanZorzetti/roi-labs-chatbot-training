@@ -9,7 +9,7 @@ interface ApiStore {
   clearAuth: () => void
 }
 
-export const useApiStore = create<ApiStore>()()
+export const useApiStore = create<ApiStore>()(
   persist(
     (set) => ({
       apiKey: '',
