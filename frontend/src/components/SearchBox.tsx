@@ -1,49 +1,45 @@
-import React from 'react'
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { cn } from '../utils/cn'
+import { useState } from 'react'
+import { useThemeStore } from '../stores/themeStore'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
-interface SearchBoxProps {
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  className?: string
-  onClear?: () => void
-}
+const SearchBox = () => {
+  const { isDark } = useThemeStore()
+  const [query, setQuery] = useState('')
 
-export default function SearchBox({
-  value,
-  onChange,
-  placeholder = 'Buscar...',
-  className,
-  onClear
-}: SearchBoxProps) {
-  const handleClear = () => {
-    onChange('')
-    onClear?.()
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (query.trim()) {
+      console.log('Searching for:', query)
+    }
   }
 
   return (
-    <div className={cn('relative', className)}>
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-      </div>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input pl-10 pr-10"
-        placeholder={placeholder}
-      />
-      {value && (
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-          <button
-            onClick={handleClear}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
+    <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg p-6`}>
+      <h2 className="text-xl font-semibold mb-4">Buscar no Conhecimento</h2>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Digite sua pergunta..."
+            className={`w-full px-3 py-2 border rounded-md pl-10 ${
+              isDark 
+                ? 'bg-gray-700 border-gray-600 text-white' 
+                : 'bg-white border-gray-300 text-gray-900'
+            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+          />
+          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
         </div>
-      )}
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Buscar
+        </button>
+      </form>
     </div>
   )
 }
+
+export default SearchBox
