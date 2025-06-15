@@ -37,6 +37,29 @@ router.use(requestId);
 router.use(requestLogger);
 router.use(performanceMonitor);
 
+// Rota de teste sem autenticação
+router.get('/test', (req, res) => {
+    res.json({
+        message: 'Crawling API funcionando!',
+        timestamp: new Date().toISOString(),
+        status: 'ok'
+    });
+});
+
+// Rota de jobs de teste (sem autenticação temporariamente)
+router.get('/jobs', (req, res) => {
+    res.json({
+        success: true,
+        history: [],
+        pagination: {
+            page: 1,
+            limit: 10,
+            total: 0,
+            totalPages: 0
+        }
+    });
+});
+
 // Rota para iniciar crawling
 router.post('/start', 
     validateContentType(['application/json']),
