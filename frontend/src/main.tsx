@@ -15,6 +15,9 @@ const queryClient = new QueryClient({
   },
 })
 
+// Build timestamp: 2025-06-15T05:18:00Z (force rebuild)
+console.log('🚀 ROI Labs Dashboard iniciando...')
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
