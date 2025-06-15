@@ -9,15 +9,13 @@ interface ApiStore {
   clearAuth: () => void
 }
 
-// Função para detectar ambiente de produção
+// Função para detectar ambiente de produção de forma segura
 const isProduction = () => {
-  try {
-    return import.meta?.env?.PROD || 
-           (typeof window !== 'undefined' && window.location.protocol === 'https:') ||
-           false
-  } catch {
-    return false
-  }
+  if (typeof window === 'undefined') return true
+  
+  // Detecta produção baseado na URL
+  const hostname = window.location.hostname
+  return hostname !== 'localhost' && hostname !== '127.0.0.1'
 }
 
 export const useApiStore = create<ApiStore>()(  
