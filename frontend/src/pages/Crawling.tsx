@@ -5,10 +5,12 @@ import CrawlingForm from '../components/CrawlingForm'
 import JobsList from '../components/JobsList'
 import JobsTable from '../components/JobsTable'
 import { apiService, type CrawlingJob } from '../utils/apiService'
+import { mapCrawlingJobsToJobs, type Job } from '../utils/dataMapper'
 
 const Crawling = () => {
   const { isDark } = useThemeStore()
-  const [jobs, setJobs] = useState<CrawlingJob[]>([])
+  const [crawlingJobs, setCrawlingJobs] = useState<CrawlingJob[]>([])
+  const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,11 +19,17 @@ const Crawling = () => {
     loadCrawlingHistory()
   }, [])
 
+  // Atualizar jobs mapeados quando crawlingJobs mudar
+  useEffect(() => {
+    const mappedJobs = mapCrawlingJobsToJobs(crawlingJobs)
+    setJobs(mappedJobs)
+  }, [crawlingJobs])
+
   const loadCrawlingHistory = async () => {
     try {
       const response = await apiService.getCrawlingHistory()
       if (response.success) {
-        setJobs(response.history)
+        setCrawlingJobs(response.history)
       }
     } catch (error) {
       console.error('Error loading crawling history:', error)
@@ -119,20 +127,14 @@ const Crawling = () => {
           </div>
           <div className="lg:col-span-2">
             <JobsList 
-              jobs={jobs} 
-              onRefresh={handleRefresh}
-              onCancel={handleCancelCrawling}
-              onDelete={handleDeleteCrawling}
+              jobs={jobs}
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6">
           <JobsTable 
-            jobs={jobs} 
-            onRefresh={handleRefresh}
-            onCancel={handleCancelCrawling}
-            onDelete={handleDeleteCrawling}
+            jobs={jobs}
           />
         </div>
       </div>
