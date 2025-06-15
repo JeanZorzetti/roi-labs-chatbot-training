@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROI Labs - Dashboard Simples</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        
+        .card p {
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .status {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .status.loading {
+            background: rgba(255, 255, 0, 0.1);
+            border-color: rgba(255, 255, 0, 0.3);
+        }
+        
+        .status.error {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: rgba(255, 0, 0, 0.3);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            opacity: 0.8;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .loading {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 ROI Labs</h1>
+            <p>Sistema de Treinamento de Chatbots com IA</p>
+        </div>
+        
+        <div id="status" class="status loading">
+            <h3>🔄 Carregando Dashboard...</h3>
+            <p>Verificando status dos serviços...</p>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h3>📊 API Status</h3>
+                <p>Verifique o status da API e dos serviços do sistema.</p>
+                <a href="/api/health" class="btn" target="_blank">Ver Health Check</a>
+            </div>
+            
+            <div class="card">
+                <h3>🔍 Teste de API</h3>
+                <p>Teste a autenticação e validação de API keys.</p>
+                <a href="/api/test-auth" class="btn" target="_blank">Testar Auth</a>
+            </div>
+            
+            <div class="card">
+                <h3>📖 Informações da API</h3>
+                <p>Documentação e endpoints disponíveis da API.</p>
+                <a href="/api/info" class="btn" target="_blank">Ver Documentação</a>
+            </div>
+            
+            <div class="card">
+                <h3>🕷️ Crawling</h3>
+                <p>Inicie um processo de crawling de website.</p>
+                <a href="#" class="btn" onclick="testCrawling()">Testar Crawling</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 ROI Labs. Sistema de Treinamento de Chatbots.</p>
+            <p>Versão 1.0.2 - Dashboard Simples de Fallback</p>
+        </div>
+    </div>
+    
+    <script>
+        // Verificar status da API
+        async function checkApiStatus() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    statusDiv.className = 'status';
+                    statusDiv.innerHTML = `
+                        <h3>✅ Sistema Online</h3>
+                        <p>API funcionando corretamente. Dashboard React: ${data.dashboard?.available ? 'Disponível' : 'Indisponível'}</p>
+                        <p>Uptime: ${data.uptime}s | Memória: ${data.memory?.used || 'N/A'}</p>
+                    `;
+                    
+                    // Se o dashboard React estiver disponível, tentar redirecionar
+                    if (data.dashboard?.available) {
+                        setTimeout(() => {
+                            statusDiv.innerHTML += '<p>🔄 Tentando carregar dashboard React...</p>';
+                            window.location.reload();
+                        }, 2000);
+                    }
+                } else {
+                    throw new Error('API não está saudável');
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = `
+                    <h3>❌ Erro de Conexão</h3>
+                    <p>Não foi possível conectar com a API: ${error.message}</p>
+                    <p>Verifique se o serviço está rodando corretamente.</p>
+                `;
+            }
+        }
+        
+        // Testar crawling
+        async function testCrawling() {
+            const apiKey = prompt('Digite sua API Key:');
+            if (!apiKey) return;
+            
+            try {
+                const response = await fetch('/api/crawling/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        url: 'https://example.com',
+                        maxPages: 1
+                    })
+                });
+                
+                const data = await response.json();
+                alert(response.ok ? 
+                    `Crawling iniciado! Job ID: ${data.jobId}` : 
+                    `Erro: ${data.error || 'Falha no crawling'}`
+                );
+            } catch (error) {
+                alert(`Erro: ${error.message}`);
+            }
+        }
+        
+        // Verificar status ao carregar a página
+        checkApiStatus();
+        
+        // Verificar status a cada 30 segundos
+        setInterval(checkApiStatus, 30000);
+        
+        console.log('🚀 ROI Labs Dashboard Simples carregado!');
+        console.log('📝 Este é um dashboard de fallback caso o React não esteja funcionando.');
+    </script>
+</body>
+</html>
