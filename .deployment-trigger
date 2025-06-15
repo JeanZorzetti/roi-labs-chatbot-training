@@ -1,29 +1,37 @@
-# ROI Labs Chatbot Training - Deployment Trigger
+## Deployment Trigger - ROI Labs Chatbot Training
 
-Deployment timestamp: 2025-06-15T05:18:30Z
+This file is used to trigger automatic deployments in Easypanel.
 
-## ✅ CACHE BREAKING COMPLETED
+**Last Update:** 2025-06-15 05:41:00 UTC
+**Trigger ID:** FRONTEND_FIX_20250615_054100
+**Changes:** 
+- Enhanced Dockerfile with better error handling and debug logs
+- Fixed frontend build process for React dashboard
+- Added comprehensive build verification steps
+- Improved multi-stage build process
 
-### Changes Applied:
-1. 🔧 **Modified `frontend/src/main.tsx`** - Added build timestamp and console.log
-2. 🎨 **Modified `frontend/src/App.tsx`** - Added theme logging and version comment  
-3. 🗑️ **Removed simple HTML dashboard** - Forces React-only serving
-4. ⚙️ **Improved server detection logic** - Better React dashboard detection
+### Build Process:
+1. **Frontend Build**: React app compiled with Vite
+2. **Backend Build**: Node.js Express server preparation  
+3. **Production**: Combined container with frontend served from `/public/dashboard/`
 
-### Expected Docker Build Result:
-```
-[frontend-builder 6/6] RUN npm run build  ← Should NOT show #CACHED
-COPY --from=frontend-builder ./public/dashboard  ← Fresh React build
-```
+### Expected Result:
+- ✅ React dashboard should be available at `/`
+- ✅ API endpoints should be available at `/api/*`
+- ✅ Health check should show dashboard availability
 
-### Expected Runtime Result:
-- Console logs: "🚀 ROI Labs Dashboard iniciando..."
-- Console logs: "🎨 ROI Labs Dashboard - Theme: Light"  
-- React dashboard with navigation tabs
-- Modern UI with crawling forms, search, history
+### Debug Information:
+- Build logs will show detailed frontend compilation steps
+- Production stage will verify frontend files are in correct location
+- Health check endpoint will indicate dashboard status
 
 ---
 
-**READY FOR DEPLOYMENT** 🚀
-**Expected Result**: Modern React Dashboard
-**Monitor**: Check build logs for cache breaking success
+**Previous Triggers:**
+- FORCE_CACHE_BREAK_20250615_052800 - Updated package.json version + build script
+- INITIAL_DEPLOY - First deployment setup
+
+If the frontend is still not working after this deployment, check:
+1. Build logs for frontend compilation errors
+2. File permissions on `/app/public/dashboard/`
+3. Express server logs for static file serving issues
