@@ -1,17 +1,7 @@
 import React from 'react'
 import { useThemeStore } from '../stores/themeStore'
 import { ClockIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-
-interface Job {
-  id: string
-  url: string
-  status: 'pending' | 'running' | 'completed' | 'failed'
-  progress: number
-  createdAt: string
-  completedAt?: string
-  pagesFound: number
-  pagesCrawled: number
-}
+import { type Job } from '../types/crawling'
 
 interface JobsListProps {
   jobs: Job[]
