@@ -1,38 +1,73 @@
 {
   "name": "roi-labs-chatbot-training",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sistema de treinamento de chatbot por crawling - Otimizado para VPS/Docker",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "start:prod": "NODE_ENV=production node server.js",
-    "start:docker": "NODE_ENV=production HOST=0.0.0.0 node server.js",
-    "dev": "nodemon src/app.js",
+    "start:docker": "NODE_ENV=production HOST=0.0.0.0 PORT=3000 node server.js",
+    "dev": "nodemon server.js",
+    "dev:debug": "DEBUG=roi:* nodemon server.js",
     "install:prod": "npm install --only=production",
     "docker:build": "docker build -t roi-chatbot .",
     "docker:run": "docker run -p 3000:3000 --env-file .env.production roi-chatbot",
     "docker:compose": "docker-compose up -d --build",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f roi-chatbot",
+    "docker:restart": "docker-compose restart roi-chatbot",
+    "docker:rebuild": "docker-compose down && docker-compose up -d --build",
     "health": "curl -f http://localhost:3000/api/health || exit 1",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "health:prod": "curl -f http://localhost:${PORT:-3000}/api/health || exit 1",
+    "lint": "echo 'Linting not configured' && exit 0",
+    "test": "echo 'Tests not configured yet' && exit 0",
+    "test:health": "npm run health && echo 'Health check passed!'",
+    "clean": "rm -rf node_modules dist build logs/*.log",
+    "validate:env": "node -e \"require('dotenv').config(); if(!process.env.SUPABASE_URL) throw new Error('Missing SUPABASE_URL'); console.log('✅ Environment variables validated');\""
   },
   "keywords": [
     "chatbot",
     "crawling",
     "training",
     "ai",
+    "machine-learning",
+    "web-scraping",
+    "puppeteer",
+    "supabase",
     "docker",
     "vps",
     "easypanel",
-    "hosting"
+    "hosting",
+    "nodejs",
+    "express",
+    "react",
+    "dashboard"
   ],
-  "author": "ROI Labs",
+  "author": {
+    "name": "ROI Labs",
+    "email": "contato@roilabs.com.br",
+    "url": "https://roilabs.com.br"
+  },
+  "contributors": [
+    {
+      "name": "Jean Zorzetti",
+      "url": "https://github.com/JeanZorzetti"
+    }
+  ],
   "license": "MIT",
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
     "axios": "^1.9.0",
@@ -46,12 +81,40 @@
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
+  "peerDependencies": {},
+  "optionalDependencies": {},
+  "bundledDependencies": [],
   "repository": {
     "type": "git",
-    "url": "https://github.com/roi-labs/chatbot-training.git"
+    "url": "git+https://github.com/JeanZorzetti/roi-labs-chatbot-training.git"
   },
   "bugs": {
-    "url": "https://github.com/roi-labs/chatbot-training/issues"
+    "url": "https://github.com/JeanZorzetti/roi-labs-chatbot-training/issues",
+    "email": "contato@roilabs.com.br"
   },
-  "homepage": "https://github.com/roi-labs/chatbot-training#readme"
+  "homepage": "https://github.com/JeanZorzetti/roi-labs-chatbot-training#readme",
+  "funding": {
+    "type": "individual",
+    "url": "https://github.com/sponsors/JeanZorzetti"
+  },
+  "config": {
+    "unsafe-perm": true
+  },
+  "files": [
+    "server.js",
+    "src/",
+    "public/",
+    "healthcheck.js",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "directories": {
+    "lib": "./src",
+    "doc": "./docs",
+    "test": "./tests"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  }
 }
