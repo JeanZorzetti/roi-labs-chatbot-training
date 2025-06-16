@@ -17,7 +17,7 @@ const DEFAULT_CONFIG = {
 
 export const useApiStore = create<ApiState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Inicializar com valores padrão
       apiKey: DEFAULT_CONFIG.API_KEY,
       baseUrl: DEFAULT_CONFIG.BASE_URL,
