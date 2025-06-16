@@ -12,16 +12,16 @@ services:
     # Variáveis de ambiente
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3001
       - HOST=0.0.0.0
     
     # Mapear arquivo .env
     env_file:
       - .env.production
     
-    # Portas
+    # Portas - CORRIGIDO para usar 3001
     ports:
-      - "3000:3000"
+      - "3001:3001"
     
     # Volumes para persistência
     volumes:
@@ -42,7 +42,7 @@ services:
     networks:
       - roi-network
     
-    # Health check
+    # Health check - CORRIGIDO para usar porta 3001
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
       interval: 30s
