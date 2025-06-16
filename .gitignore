@@ -1,0 +1,295 @@
+# ===================================
+# ROI Labs Chatbot Training - .gitignore
+# ===================================
+# 🔒 CRITICAL: Protects sensitive data from being committed
+
+# ===================================
+# 🚨 ENVIRONMENT & CREDENTIALS
+# ===================================
+# Never commit these files - they contain sensitive data
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.staging
+.env.*.local
+
+# Environment backup files
+*.env.backup
+*.env.bak
+.env.orig
+
+# ===================================
+# 📦 NODE.JS & NPM
+# ===================================
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package lock files (keep package-lock.json but exclude others)
+yarn.lock
+pnpm-lock.yaml
+
+# NPM cache
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ===================================
+# 🏗️ BUILD & DIST
+# ===================================
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist
+
+# Frontend build
+frontend/dist/
+frontend/build/
+public/dashboard/
+
+# Compiled binary addons
+build/Release
+
+# ===================================
+# 📝 LOGS & RUNTIME
+# ===================================
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+lib-cov/
+coverage/
+*.lcov
+.nyc_output
+
+# ===================================
+# 📂 UPLOADS & TEMP FILES
+# ===================================
+# File uploads
+uploads/
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Crawling data
+crawled_data/
+training_data/
+scraped_content/
+
+# ===================================
+# 🔐 SECURITY & CERTIFICATES
+# ===================================
+# SSL certificates
+ssl/
+certificates/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# GPG keys
+*.gpg
+*.asc
+
+# ===================================
+# 🐳 DOCKER & CONTAINERS
+# ===================================
+# Docker volumes
+docker-data/
+docker-volumes/
+
+# Docker override files
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# ===================================
+# 💾 DATABASES
+# ===================================
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Database dumps
+*.sql
+*.dump
+*.backup
+
+# ===================================
+# 🔧 DEVELOPMENT TOOLS
+# ===================================
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ===================================
+# 💻 OPERATING SYSTEM
+# ===================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ===================================
+# 🧪 TESTING & DEBUGGING
+# ===================================
+# Test coverage
+coverage/
+.nyc_output/
+
+# Test databases
+test.db
+test.sqlite
+
+# Debug files
+.debug/
+
+# ===================================
+# 📊 MONITORING & ANALYTICS
+# ===================================
+# Performance monitoring
+.perfdata/
+performance-*.json
+
+# Analytics data
+analytics/
+metrics/
+stats/
+
+# ===================================
+# 🔄 CACHE & TEMP
+# ===================================
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ===================================
+# 📱 MOBILE & PWA
+# ===================================
+# PWA build files
+sw.js
+workbox-*.js
+
+# ===================================
+# 🎯 PROJECT SPECIFIC
+# ===================================
+# Crawling engine data
+puppeteer_cache/
+chrome_temp/
+screenshot_cache/
+
+# API keys and secrets (extra protection)
+secrets/
+keys/
+credentials/
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# ===================================
+# 🚀 DEPLOYMENT
+# ===================================
+# Deployment artifacts
+.vercel/
+.netlify/
+.serverless/
+
+# PM2 logs
+.pm2/
+
+# ===================================
+# 📋 DOCUMENTATION BUILDS
+# ===================================
+# Generated documentation
+docs/build/
+docs/dist/
+
+# ===================================
+# 🎨 ASSETS & MEDIA (if large)
+# ===================================
+# Large media files (uncomment if needed)
+# *.mp4
+# *.mkv
+# *.avi
+# *.mov
+# *.wmv
+# *.mp3
+# *.wav
+# *.flac
+
+# Large image files (uncomment if needed)
+# *.psd
+# *.ai
+# *.sketch
+
+# ===================================
+# END OF .gitignore
+# ===================================
