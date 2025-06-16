@@ -15,7 +15,9 @@ class WebCrawler {
             /\/wp-admin/,
             /\/feed/
         ];
-        this.maxTimeoutMs = 15000; // Timeout máximo de 15 segundos
+        this.maxTimeoutMs = options.timeout || 15000; // Timeout configurável
+        this.abortController = new AbortController(); // Controller principal
+        this.activeOperations = new Set(); // Track de operações ativas
     }
 
     async crawlWebsite(baseUrl, onProgress = null) {
@@ -55,6 +57,9 @@ class WebCrawler {
             console.error('❌ Erro no crawling:', error.message);
             throw error;
         } finally {
+            // Cleanup de recursos
+            await this.cleanup();
+            
             if (browser) {
                 try {
                     await browser.close();
@@ -67,6 +72,12 @@ class WebCrawler {
     }
 
     async crawlPage(url, browser, depth, onProgress) {
+        // Verificar se foi cancelado
+        if (this.abortController.signal.aborted) {
+            console.log(`🛑 Crawling cancelado para: ${url}`);
+            return;
+        }
+
         // Verificar limites rigorosamente
         if (depth > this.maxDepth || 
             this.visitedUrls.has(url) || 
@@ -95,6 +106,8 @@ class WebCrawler {
         }
 
         let page = null;
+        let requestHandler = null; // Track do handler de request
+        
         try {
             page = await browser.newPage();
             
@@ -108,14 +121,18 @@ class WebCrawler {
             
             // Desabilitar imagens e CSS para ser mais rápido
             await page.setRequestInterception(true);
-            page.on('request', (req) => {
+            
+            // Criar handler removível para requests
+            requestHandler = (req) => {
                 const resourceType = req.resourceType();
                 if (resourceType === 'image' || resourceType === 'stylesheet' || resourceType === 'font') {
                     req.abort();
                 } else {
                     req.continue();
                 }
-            });
+            };
+            
+            page.on('request', requestHandler);
             
             console.log(`🌐 Navegando para: ${url}`);
             
@@ -127,8 +144,8 @@ class WebCrawler {
 
             console.log(`📋 Extraindo conteúdo de: ${url}`);
 
-            // Extrair dados da página
-            const pageData = await this.extractPageContent(page, url);
+            // Extrair dados da página com AbortController
+            const pageData = await this.extractPageContentWithTimeout(page, url);
             
             if (pageData.content && pageData.content.trim().length > 50) {
                 this.crawledData.push(pageData);
@@ -137,32 +154,38 @@ class WebCrawler {
                 console.log(`⚠️ Conteúdo insuficiente em: ${url}`);
             }
 
-            // Encontrar links internos - limitado e com timeout
-            const internalLinks = await Promise.race([
-                this.findInternalLinks(page, url),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout finding links')), 5000))
-            ]);
+            // Encontrar links internos com AbortController e timeout adequado
+            const internalLinks = await this.findInternalLinksWithTimeout(page, url);
             
             console.log(`🔗 Encontrados ${internalLinks.length} links em: ${url}`);
 
-            // Delay entre requests
-            await this.sleep(this.delay);
+            // Delay entre requests (verificando abort)
+            await this.sleepWithAbort(this.delay);
 
             // Processar apenas alguns links para evitar explosão
             const linksToProcess = internalLinks.slice(0, Math.min(5, this.maxPages - this.crawledData.length));
             console.log(`🔄 Processando ${linksToProcess.length} sub-links...`);
             
             for (const link of linksToProcess) {
-                if (this.crawledData.length >= this.maxPages) break;
+                if (this.crawledData.length >= this.maxPages || this.abortController.signal.aborted) break;
                 await this.crawlPage(link, browser, depth + 1, onProgress);
             }
 
         } catch (error) {
-            console.error(`❌ Erro ao processar ${url}:`, error.message);
+            if (error.name === 'AbortError') {
+                console.log(`🛑 Operação cancelada para: ${url}`);
+            } else {
+                console.error(`❌ Erro ao processar ${url}:`, error.message);
+            }
             // Não quebrar o crawling por causa de uma página
         } finally {
+            // Cleanup da página
             if (page) {
                 try {
+                    // Remover event listeners antes de fechar
+                    if (requestHandler) {
+                        page.removeListener('request', requestHandler);
+                    }
                     await page.close();
                 } catch (closeError) {
                     console.error(`⚠️ Erro ao fechar página ${url}:`, closeError.message);
@@ -171,68 +194,78 @@ class WebCrawler {
         }
     }
 
-    async extractPageContent(page, url) {
+    async extractPageContentWithTimeout(page, url) {
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            abortController.abort();
+        }, 10000); // 10s timeout
+
         try {
-            const content = await Promise.race([
-                page.evaluate(() => {
-                    // Remover elementos desnecessários
-                    const elementsToRemove = [
-                        'script', 'style', 'nav', 'header', 'footer', 
-                        '.advertisement', '.ads', '.sidebar', '.menu', 
-                        '.navigation', '.cookie-banner', '.popup'
-                    ];
-                    
-                    elementsToRemove.forEach(selector => {
-                        const elements = document.querySelectorAll(selector);
-                        elements.forEach(el => el.remove());
-                    });
+            // Registrar operação ativa
+            this.activeOperations.add(abortController);
 
-                    // Extrair metadados
-                    const title = document.title || '';
-                    const description = document.querySelector('meta[name="description"]')?.content || 
-                                     document.querySelector('meta[property="og:description"]')?.content || '';
-                    const keywords = document.querySelector('meta[name="keywords"]')?.content || '';
-                    
-                    // Extrair conteúdo principal
-                    const contentSelectors = [
-                        'main', 'article', '[role="main"]', '.content', 
-                        '.main-content', '.post-content', '.entry-content',
-                        'section', '.container'
-                    ];
-                    
-                    let mainContent = '';
-                    for (const selector of contentSelectors) {
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            mainContent = element.innerText || element.textContent || '';
-                            if (mainContent.trim().length > 100) break;
-                        }
+            const content = await page.evaluate(() => {
+                // Remover elementos desnecessários
+                const elementsToRemove = [
+                    'script', 'style', 'nav', 'header', 'footer', 
+                    '.advertisement', '.ads', '.sidebar', '.menu', 
+                    '.navigation', '.cookie-banner', '.popup'
+                ];
+                
+                elementsToRemove.forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => el.remove());
+                });
+
+                // Extrair metadados
+                const title = document.title || '';
+                const description = document.querySelector('meta[name="description"]')?.content || 
+                                 document.querySelector('meta[property="og:description"]')?.content || '';
+                const keywords = document.querySelector('meta[name="keywords"]')?.content || '';
+                
+                // Extrair conteúdo principal
+                const contentSelectors = [
+                    'main', 'article', '[role="main"]', '.content', 
+                    '.main-content', '.post-content', '.entry-content',
+                    'section', '.container'
+                ];
+                
+                let mainContent = '';
+                for (const selector of contentSelectors) {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        mainContent = element.innerText || element.textContent || '';
+                        if (mainContent.trim().length > 100) break;
                     }
+                }
 
-                    // Se não encontrou conteúdo suficiente, pegar do body
-                    if (mainContent.trim().length < 100) {
-                        mainContent = document.body.innerText || document.body.textContent || '';
-                    }
+                // Se não encontrou conteúdo suficiente, pegar do body
+                if (mainContent.trim().length < 100) {
+                    mainContent = document.body.innerText || document.body.textContent || '';
+                }
 
-                    // Extrair headings
-                    const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
-                        .map(h => ({
-                            level: h.tagName.toLowerCase(),
-                            text: h.innerText.trim()
-                        }))
-                        .filter(h => h.text && h.text.length > 3)
-                        .slice(0, 20); // Limitar headings
+                // Extrair headings
+                const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
+                    .map(h => ({
+                        level: h.tagName.toLowerCase(),
+                        text: h.innerText.trim()
+                    }))
+                    .filter(h => h.text && h.text.length > 3)
+                    .slice(0, 20); // Limitar headings
 
-                    return {
-                        title: title.trim(),
-                        description: description.trim(),
-                        keywords: keywords.trim(),
-                        content: mainContent.trim(),
-                        headings: headings
-                    };
-                }),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout extracting content')), 10000))
-            ]);
+                return {
+                    title: title.trim(),
+                    description: description.trim(),
+                    keywords: keywords.trim(),
+                    content: mainContent.trim(),
+                    headings: headings
+                };
+            });
+
+            // Verificar se foi abortado
+            if (abortController.signal.aborted) {
+                throw new Error('Timeout extracting content');
+            }
 
             return {
                 url,
@@ -259,11 +292,23 @@ class WebCrawler {
                 contentLength: 0,
                 error: error.message
             };
+        } finally {
+            // Cleanup do timeout e operação
+            clearTimeout(timeoutId);
+            this.activeOperations.delete(abortController);
         }
     }
 
-    async findInternalLinks(page, currentUrl) {
+    async findInternalLinksWithTimeout(page, currentUrl) {
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            abortController.abort();
+        }, 5000); // 5s timeout
+
         try {
+            // Registrar operação ativa
+            this.activeOperations.add(abortController);
+
             const baseUrl = new URL(currentUrl).origin;
             const baseDomain = new URL(currentUrl).hostname;
             
@@ -288,11 +333,20 @@ class WebCrawler {
                     .slice(0, 20); // Limitar links encontrados
             }, baseUrl, baseDomain);
 
+            // Verificar se foi abortado
+            if (abortController.signal.aborted) {
+                throw new Error('Timeout finding links');
+            }
+
             // Remover duplicatas e URLs já visitadas
             return [...new Set(links)].filter(link => !this.visitedUrls.has(link));
         } catch (error) {
             console.error(`❌ Erro encontrando links em ${currentUrl}:`, error.message);
             return [];
+        } finally {
+            // Cleanup do timeout e operação
+            clearTimeout(timeoutId);
+            this.activeOperations.delete(abortController);
         }
     }
 
@@ -316,8 +370,32 @@ class WebCrawler {
         }
     }
 
-    sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, Math.min(ms, 5000))); // Max 5s delay
+    async sleepWithAbort(ms) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(resolve, Math.min(ms, 5000)); // Max 5s delay
+            
+            // Verificar abort no signal
+            if (this.abortController.signal.aborted) {
+                clearTimeout(timeoutId);
+                reject(new Error('AbortError'));
+                return;
+            }
+
+            // Listener para abort
+            const abortListener = () => {
+                clearTimeout(timeoutId);
+                reject(new Error('AbortError'));
+            };
+
+            this.abortController.signal.addEventListener('abort', abortListener);
+
+            // Cleanup no resolve
+            const originalResolve = resolve;
+            resolve = (value) => {
+                this.abortController.signal.removeEventListener('abort', abortListener);
+                originalResolve(value);
+            };
+        });
     }
 
     // Dividir conteúdo em chunks para embeddings
@@ -344,6 +422,34 @@ class WebCrawler {
         }
 
         return chunks.filter(chunk => chunk.length > 20); // Filtrar chunks muito pequenos
+    }
+
+    // Método para abortar todas as operações
+    abort() {
+        console.log('🛑 Abortando todas as operações do crawler...');
+        this.abortController.abort();
+        
+        // Abortar operações ativas
+        this.activeOperations.forEach(controller => {
+            controller.abort();
+        });
+    }
+
+    // Cleanup de recursos
+    async cleanup() {
+        console.log('🧹 Executando cleanup do crawler...');
+        
+        // Abortar operações pendentes
+        this.abort();
+        
+        // Limpar sets
+        this.visitedUrls.clear();
+        this.activeOperations.clear();
+        
+        // Aguardar um pouco para operações abortarem
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log('✅ Cleanup concluído');
     }
 }
 
