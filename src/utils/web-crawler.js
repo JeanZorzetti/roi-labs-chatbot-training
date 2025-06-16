@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer');
-const axios = require('axios');
 const { URL } = require('url');
 
 class WebCrawler {
