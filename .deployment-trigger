@@ -1,37 +1,6 @@
-Commit: Deploy: Fix API authentication issue - Add temporary routes for testing
-##########################################
-### Fixed "Erro ao carregar histórico de crawlings"
-### Sun, 15 Jun 2025 20:32:50 GMT
-##########################################
+Force rebuild to deploy crawling fixes
+Timestamp: 2025-06-15T20:50:00Z
+Commit: f9312d1f3b5fcd357be7843354c0103ecae076df
 
-✅ PROBLEMA REAL IDENTIFICADO E CORRIGIDO:
-- Frontend estava tentando acessar /api/crawling/history que exige API key
-- API key não estava configurada no frontend
-- Adicionadas rotas temporárias sem autenticação para testar
-
-✅ MUDANÇAS APLICADAS:
-1. src/routes/crawling.js - Adicionadas rotas de teste:
-   - GET /api/crawling/test (sem autenticação)
-   - GET /api/crawling/jobs (sem autenticação, retorna histórico vazio)
-   
-2. frontend/src/utils/apiService.ts - Atualizado:
-   - getCrawlingHistory() agora usa /api/crawling/jobs 
-   - Remove dependência de API key temporariamente
-
-✅ RESULTADO ESPERADO:
-- ❌ "Erro ao carregar histórico de crawlings" → ✅ "Nenhum job encontrado"
-- Frontend deve carregar sem erro de API
-- Teste de conectividade API funcionando
-- Interface de crawling operacional
-
-✅ PRÓXIMOS PASSOS:
-1. Configurar cliente com API key válida no Supabase
-2. Restaurar autenticação nas rotas
-3. Configurar API key padrão no frontend
-
-Status: ERRO DE API CORRIGIDO TEMPORARIAMENTE
-Tipo: HOT FIX para permitir teste da interface
-Build: PRONTO PARA DEPLOY
-
-Trigger ID: api-auth-hotfix-20250615
-Build ID: crawling-api-fix-001
+This trigger file forces Easypanel to rebuild the container
+with the latest crawling authentication fixes.
