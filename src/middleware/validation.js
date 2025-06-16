@@ -17,7 +17,7 @@ const sanitizeString = (str, maxLength = 1000) => {
     return str
         .trim()
         .slice(0, maxLength)
-        .replace(/[<>\"'&]/g, '') // Remove caracteres perigosos
+        .replace(/[<>"'&]/g, '') // Remove caracteres perigosos
         .replace(/\s+/g, ' '); // Normaliza espaços
 };
 
@@ -34,6 +34,12 @@ const isValidNumber = (value, min = null, max = null) => {
     if (min !== null && num < min) return false;
     if (max !== null && num > max) return false;
     return true;
+};
+
+// Função auxiliar para validar UUID
+const isValidUUID = (id) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
 };
 
 // Validação para crawling
@@ -214,7 +220,7 @@ const validateClientData = (req, res, next) => {
     next();
 };
 
-// Validação de parâmetros de ID
+// Validação de parâmetros de ID (suporta UUID e números)
 const validateIdParam = (paramName = 'id') => {
     return (req, res, next) => {
         const id = req.params[paramName];
@@ -225,14 +231,21 @@ const validateIdParam = (paramName = 'id') => {
             });
         }
 
-        if (!isValidNumber(id, 1)) {
+        // Verificar se é UUID válido (para crawling jobs) ou número (para outros casos)
+        const isUUID = isValidUUID(id);
+        const isNumber = isValidNumber(id, 1);
+        
+        if (!isUUID && !isNumber) {
             return res.status(400).json({
-                error: `Parâmetro ${paramName} deve ser um número positivo`
+                error: `Parâmetro ${paramName} deve ser um UUID válido ou número positivo`
             });
         }
 
-        // Converter para número
-        req.params[paramName] = parseInt(id);
+        // Manter o ID como string se for UUID, converter para número se for numérico
+        if (!isUUID && isNumber) {
+            req.params[paramName] = parseInt(id);
+        }
+        
         next();
     };
 };
@@ -379,5 +392,6 @@ module.exports = {
     isValidUrl,
     sanitizeString,
     isValidEmail,
-    isValidNumber
+    isValidNumber,
+    isValidUUID
 };
