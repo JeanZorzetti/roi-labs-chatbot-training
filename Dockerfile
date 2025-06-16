@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for ROI Labs Chatbot Training
-# Enhanced with better error handling and debug logs - v1.0.2
+# Enhanced with better error handling and debug logs - v1.0.3
 
 # Stage 1: Build Frontend
 FROM node:18-alpine AS frontend-builder
@@ -83,7 +83,6 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    curl \
     && rm -rf /var/cache/apk/*
 
 # Set Puppeteer to use installed Chromium
@@ -116,15 +115,14 @@ COPY --chown=nextjs:nodejs healthcheck.js ./
 # Show final app structure
 RUN echo "📁 Final app structure:" && ls -la
 
-# Expose port 3001 (matching your configuration)
+# Expose port 3001
 EXPOSE 3001
 
 # Switch to non-root user
 USER nextjs
 
-# Health check (using port 3001)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3001/api/health || exit 1
+# NOTE: Health check is configured in docker-compose.yml using healthcheck.js
+# This avoids curl dependency and provides better debugging information
 
 # Start application
 CMD ["npm", "run", "start:prod"]
