@@ -19,7 +19,7 @@ services:
     env_file:
       - .env.production
     
-    # Portas - CORRIGIDO para usar 3001
+    # Portas - Usando porta 3001 consistentemente
     ports:
       - "3001:3001"
     
@@ -42,13 +42,13 @@ services:
     networks:
       - roi-network
     
-    # Health check - CORRIGIDO para usar porta 3001
+    # Health check usando healthcheck.js (sem dependência de curl)
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ["CMD", "node", "/app/healthcheck.js"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
-      start_period: 40s
+      start_period: 45s
 
   # Nginx como proxy reverso (opcional)
   nginx:
@@ -66,10 +66,19 @@ services:
       - ./logs/nginx:/var/log/nginx
     
     depends_on:
-      - roi-chatbot
+      roi-chatbot:
+        condition: service_healthy
     
     networks:
       - roi-network
+    
+    # Health check para nginx
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 networks:
   roi-network:
